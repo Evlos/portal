@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>// BOOKMARKS</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<style>
+  :root {
+    --green:  #00ff88;
+    --dim:    #00aa55;
+    --muted:  #005533;
+    --red:    #ff4455;
+    --yellow: #ffcc00;
+    --bg:     #0a0a0a;
+    --card:   #0f0f0f;
+    --border: #1a2a1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  ::selection { background: var(--green); color: var(--bg); }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+
+  .container { max-width: 760px; margin: 0 auto; }
+
+  /* HEADER */
+  header { margin-bottom: 36px; }
+  .logo {
+    font-size: 22px;
+    letter-spacing: 6px;
+    color: var(--green);
+    text-transform: uppercase;
+    border-left: 3px solid var(--green);
+    padding-left: 12px;
+    margin-bottom: 6px;
+  }
+  .subtitle { color: var(--muted); font-size: 12px; letter-spacing: 2px; }
+
+  /* FORM */
+  .add-form {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 32px;
+  }
+  .add-form .prompt {
+    color: var(--dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .field-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+  .field-label {
+    color: var(--muted);
+    min-width: 54px;
+    font-size: 12px;
+  }
+  input[type="text"], input[type="url"] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--green);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 4px 6px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="text"]:focus, input[type="url"]:focus {
+    border-bottom-color: var(--green);
+  }
+  input::placeholder { color: var(--muted); }
+  .btn-submit {
+    display: inline-block;
+    margin-top: 12px;
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 22px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: background .15s, color .15s;
+  }
+  .btn-submit:hover { background: var(--green); color: var(--bg); }
+
+  /* LIST */
+  .list-header {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 3px;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+  #bookmark-list { list-style: none; }
+
+  .bookmark-item {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    padding: 13px 14px;
+    margin-bottom: 6px;
+    cursor: grab;
+    transition: border-color .15s, background .15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+  }
+  .bookmark-item:hover {
+    border-left-color: var(--green);
+    background: #111;
+  }
+  .bookmark-item.sortable-ghost {
+    opacity: .3;
+    border-left-color: var(--yellow);
+  }
+  .bookmark-item.sortable-drag { cursor: grabbing; }
+
+  .drag-handle {
+    color: var(--muted);
+    font-size: 16px;
+    user-select: none;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .bookmark-item:hover .drag-handle { color: var(--dim); }
+
+  .item-body { flex: 1; min-width: 0; }
+  .item-title {
+    color: var(--green);
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .item-url {
+    color: var(--muted);
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 3px;
+  }
+  .item-url a { color: var(--muted); text-decoration: none; }
+  .item-url a:hover { color: var(--dim); text-decoration: underline; }
+
+  /* ACTIONS */
+  .item-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .bookmark-item:hover .item-actions { opacity: 1; }
+  .btn-action {
+    background: transparent;
+    border: 1px solid transparent;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-edit  { color: var(--yellow); border-color: var(--yellow); }
+  .btn-edit:hover  { background: var(--yellow); color: var(--bg); }
+  .btn-delete{ color: var(--red);    border-color: var(--red); }
+  .btn-delete:hover{ background: var(--red);    color: #fff; }
+
+  /* INLINE EDIT */
+  .edit-panel {
+    display: none;
+    padding: 10px 14px 10px 40px;
+    background: #111;
+    border: 1px solid var(--border);
+    border-top: none;
+    margin-top: -6px;
+    margin-bottom: 6px;
+    gap: 10px;
+    flex-direction: column;
+  }
+  .edit-panel.open { display: flex; }
+  .edit-row { display: flex; gap: 10px; align-items: center; }
+  .edit-label { color: var(--muted); min-width: 54px; font-size: 12px; }
+  .edit-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--green);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 4px 6px;
+    outline: none;
+  }
+  .edit-input:focus { border-bottom-color: var(--green); }
+  .edit-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .btn-save   { color: var(--green); border: 1px solid var(--green); }
+  .btn-save:hover   { background: var(--green); color: var(--bg); }
+  .btn-cancel { color: var(--muted); border: 1px solid var(--muted); }
+  .btn-cancel:hover { background: var(--muted); color: var(--bg); }
+
+  .empty-state {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 28px 14px;
+    border: 1px dashed var(--border);
+    text-align: center;
+  }
+
+  /* toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--card);
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: monospace;
+    font-size: 12px;
+    padding: 10px 18px;
+    letter-spacing: 1px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .3s, transform .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.err  { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">// BOOKMARKS</div>
+    <div class="subtitle">__ terminal link vault __</div>
+  </header>
+
+  <form class="add-form" action="/add" method="post">
+    <div class="prompt">&gt; ADD NEW ENTRY</div>
+    <div class="field-row">
+      <span class="field-label">TITLE</span>
+      <input type="text" name="title" placeholder="optional label..." autocomplete="off">
+    </div>
+    <div class="field-row">
+      <span class="field-label">URL</span>
+      <input type="url" name="url" placeholder="https://..." required autocomplete="off">
+    </div>
+    <button type="submit" class="btn-submit">[ SAVE ]</button>
+  </form>
+
+  <div class="list-header">&gt; SAVED ENTRIES ({{ items|length }})</div>
+
+  {% if items %}
+  <ul id="bookmark-list">
+    {% for item in items %}
+    <li class="bookmark-item" data-id="{{ item.id }}" id="item-{{ item.id }}">
+      <span class="drag-handle">⠿</span>
+      <div class="item-body">
+        <div class="item-title">{{ item.title }}</div>
+        <div class="item-url"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url }}</a></div>
+      </div>
+      <div class="item-actions">
+        <button class="btn-action btn-edit"   onclick="openEdit({{ item.id }}, event)">EDIT</button>
+        <button class="btn-action btn-delete" onclick="deleteItem({{ item.id }}, event)">DEL</button>
+      </div>
+    </li>
+    <div class="edit-panel" id="edit-{{ item.id }}">
+      <div class="edit-row">
+        <span class="edit-label">TITLE</span>
+        <input class="edit-input" id="et-{{ item.id }}" type="text" value="{{ item.title }}" autocomplete="off">
+      </div>
+      <div class="edit-row">
+        <span class="edit-label">URL</span>
+        <input class="edit-input" id="eu-{{ item.id }}" type="url"  value="{{ item.url }}" autocomplete="off">
+      </div>
+      <div class="edit-actions">
+        <button class="btn-action btn-save"   onclick="saveEdit({{ item.id }})">[ SAVE ]</button>
+        <button class="btn-action btn-cancel" onclick="closeEdit({{ item.id }})">[ CANCEL ]</button>
+      </div>
+    </div>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty-state">_ NO ENTRIES YET _</div>
+  {% endif %}
+
+</div>
+<div id="toast"></div>
+
+<script>
+const list = document.getElementById("bookmark-list");
+if (list) {
+  new Sortable(list, {
+    animation: 150,
+    handle: ".drag-handle",
+    ghostClass: "sortable-ghost",
+    dragClass: "sortable-drag",
+    onEnd: function() {
+      const ids = [...list.querySelectorAll(".bookmark-item")].map(el => +el.dataset.id);
+      fetch("/reorder", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(ids)
+      });
+      toast("ORDER SAVED");
+    }
+  });
+}
+
+function openEdit(id, e) {
+  e.stopPropagation();
+  document.querySelectorAll(".edit-panel.open").forEach(p => p.classList.remove("open"));
+  document.getElementById("edit-" + id).classList.add("open");
+}
+function closeEdit(id) {
+  document.getElementById("edit-" + id).classList.remove("open");
+}
+async function saveEdit(id) {
+  const title = document.getElementById("et-" + id).value.trim();
+  const url   = document.getElementById("eu-" + id).value.trim();
+  if (!url) { toast("URL REQUIRED", true); return; }
+  const res = await fetch("/edit/" + id, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({title, url})
+  });
+  const data = await res.json();
+  if (data.status === "ok") {
+    const li = document.getElementById("item-" + id);
+    li.querySelector(".item-title").textContent = data.title;
+    li.querySelector(".item-url a").textContent = data.url;
+    li.querySelector(".item-url a").href = data.url;
+    closeEdit(id);
+    toast("ENTRY UPDATED");
+  }
+}
+async function deleteItem(id, e) {
+  e.stopPropagation();
+  const res = await fetch("/delete/" + id, { method: "POST" });
+  const data = await res.json();
+  if (data.status === "ok") {
+    document.getElementById("item-" + id).remove();
+    const ep = document.getElementById("edit-" + id);
+    if (ep) ep.remove();
+    const count = document.querySelectorAll(".bookmark-item").length;
+    document.querySelector(".list-header").textContent = "> SAVED ENTRIES (" + count + ")";
+    if (!count) {
+      document.getElementById("bookmark-list").outerHTML =
+        '<div class="empty-state">_ NO ENTRIES YET _</div>';
+    }
+    toast("ENTRY DELETED");
+  }
+}
+
+let toastTimer;
+function toast(msg, err=false) {
+  const el = document.getElementById("toast");
+  el.textContent = "> " + msg;
+  el.className = "show" + (err ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = "", 2200);
+}
+</script>
+</body>
+</html>
