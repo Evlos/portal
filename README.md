@@ -5,7 +5,7 @@
 ██   ██ ██    ██ ██   ██    ██    ██   ██ ██
 ██████  ██    ██ ██████     ██    ███████ ██
 ██      ██    ██ ██   ██    ██    ██   ██ ██
-██       ██████  ██   ██    ██    ██   ██ ███████
+     ██       ██████  ██   ██    ██    ██   ██ ███████
 ```
 
 **// BOOKMARKS — terminal link vault**
@@ -25,22 +25,22 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 ## ✦ Preview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  // BOOKMARKS                                           │
-│  __ terminal link vault __                              │
-│                                                         │
-│  > ADD NEW ENTRY                                        │
-│  TITLE  ___________________________                     │
-│  URL    https://...                   [ SAVE ]          │
-│                                                         │
-│  > SAVED ENTRIES (3)                                    │
-│  ⠿  GitHub                                              │
-│     [https://github.com](https://github.com)               [EDIT] [DEL]       │
-│  ⠿  Hacker News                                         │
-│     [https://news.ycombinator.com](https://news.ycombinator.com)     [EDIT] [DEL]       │
-│  ⠿  Python Docs                                         │
-│     [https://docs.python.org](https://docs.python.org)          [EDIT] [DEL]       │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────
+│  // BOOKMARKS
+│  __ terminal link vault __
+│
+│  > ADD NEW ENTRY
+│  TITLE  ___________________________
+│  URL    https://...                   [ SAVE ]
+│                                                         
+│  > SAVED ENTRIES (3)
+│  ⠿  GitHub
+│     [https://github.com](https://github.com)
+│  ⠿  Hacker News
+│     [https://news.ycombinator.com](https://news.ycombinator.com)
+│  ⠿  Python Docs
+│     [https://docs.python.org](https://docs.python.org)
+└─────────────────────────────────────────────────────────
 ```
 
 
