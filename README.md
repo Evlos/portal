@@ -24,25 +24,7 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 
 ## ✦ Preview
 
-```
-┌─────────────────────────────────────────────────────────
-│  // BOOKMARKS
-│  __ terminal link vault __
-│
-│  > ADD NEW ENTRY
-│  TITLE  ___________________________
-│  URL    https://...                   [ SAVE ]
-│                                                         
-│  > SAVED ENTRIES (3)
-│  ⠿  GitHub
-│     [https://github.com](https://github.com)
-│  ⠿  Hacker News
-│     [https://news.ycombinator.com](https://news.ycombinator.com)
-│  ⠿  Python Docs
-│     [https://docs.python.org](https://docs.python.org)
-└─────────────────────────────────────────────────────────
-```
-
+![Preview](https://raw.githubusercontent.com/Evlos/uploads/refs/heads/main/%20BOOKMARKS%20-%20Google%20Chrome_2026-03-29_12-43-08.jpg)
 
 ---
 
