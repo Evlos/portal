@@ -5,7 +5,7 @@
 ██   ██ ██    ██ ██   ██    ██    ██   ██ ██
 ██████  ██    ██ ██████     ██    ███████ ██
 ██      ██    ██ ██   ██    ██    ██   ██ ██
-     ██       ██████  ██   ██    ██    ██   ██ ███████
+██████  ██████  ██   ██    ██    ██   ██ ███████
 ```
 
 **// BOOKMARKS — terminal link vault**
@@ -24,7 +24,7 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 
 ## ✦ Preview
 
-![Preview](https://raw.githubusercontent.com/Evlos/uploads/refs/heads/main/%20BOOKMARKS%20-%20Google%20Chrome_2026-03-29_12-43-08.jpg)
+![Preview](https://raw.githubusercontent.com/Evlos/uploads/refs/heads/main/%20BOOKMARKS%20-%20Google%20Chrome_2026-03-30_13-56-35.jpg)
 
 ---
 
@@ -32,13 +32,27 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 ## ✦ Features
 
 - **CRUD operations** — Add, edit, and delete bookmarks with custom titles.
-- **Drag-and-drop sorting** — Drag items to instantly save their order using SortableJS, with no data lost on refresh.
+- **Edit mode** — Click `[ EDIT ]` in the top-right corner to enter edit mode; the button turns yellow. Only in edit mode are the per-item EDIT and DEL buttons visible (no hover required), and drag-and-drop reordering enabled. Click again to exit.
+- **Add mode** — Click `[ ADD ]` in the top-right corner to reveal the ADD NEW ENTRY form. A `[ CANCEL ]` button inside the form exits add mode without submitting. Add mode and edit mode are mutually exclusive.
+- **Delete confirmation** — Deleting a bookmark requires a second confirmation via a modal overlay, preventing accidental removal.
+- **Drag-and-drop sorting** — Drag items to instantly save their order using SortableJS (only available in edit mode), with no data lost on refresh.
 - **Inline editing** — Click EDIT to expand the editing panel directly in the list, eliminating the need for page redirects.
 - **Toast notifications** — Lightweight, terminal-style pop-ups appear after every action.
 - **Zero frontend dependencies** — The project only imports SortableJS via CDN, avoiding heavy frontend frameworks.
 - **SQLite persistence** — Data is securely stored in a local file without needing an external database.
 - **One-click Docker deployment** — The multi-stage Alpine build keeps the container image extremely small.
 - **Comprehensive test coverage** — Full workflow testing with pytest covers the homepage, adding, deleting, editing, and reordering.
+
+
+## ✦ UI Modes
+
+| Mode | Trigger | Effect |
+| :-- | :-- | :-- |
+| **Normal** | Default | Read-only view; EDIT/DEL buttons hidden; drag disabled |
+| **Edit mode** | `[ EDIT ]` button (top-right) | Shows EDIT/DEL buttons on every item; enables drag-and-drop reordering |
+| **Add mode** | `[ ADD ]` button (top-right) | Reveals the ADD NEW ENTRY form; `[ CANCEL ]` hides it again |
+
+> Edit mode and add mode are mutually exclusive — activating one automatically exits the other.
 
 
 ## ✦ Tech Stack
