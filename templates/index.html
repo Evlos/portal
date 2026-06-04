@@ -189,9 +189,12 @@
     flex-shrink: 0;
     line-height: 1;
     cursor: default;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
   }
-  /* show drag cursor on handle only in edit mode */
-  body.edit-mode .drag-handle { cursor: grab; color: var(--dim); }
+  /* show drag cursor & icon only in edit mode */
+  body.edit-mode .drag-handle { cursor: grab; color: var(--dim); opacity: 1; pointer-events: auto; }
 
   .item-body { flex: 1; min-width: 0; }
   .item-title {
@@ -354,6 +357,60 @@
   }
   #toast.show { opacity: 1; transform: translateY(0); }
   #toast.err  { border-color: var(--red); color: var(--red); }
+
+  /* ── Column layout ── */
+  #bookmark-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  #bookmark-list.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  #bookmark-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  /* In multi-col mode, edit-panels span all columns */
+  #bookmark-list.cols-2 .edit-panel,
+  #bookmark-list.cols-3 .edit-panel,
+  #bookmark-list.cols-4 .edit-panel { grid-column: 1 / -1; }
+
+  /* ── Column toggle buttons ── */
+  .col-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: 12px;
+  }
+  .btn-col {
+    background: transparent;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-col:hover { border-color: var(--dim); color: var(--dim); }
+  .btn-col.active { border-color: var(--blue); color: var(--blue); }
+
+  /* list-header row: align items in one line */
+  .list-header-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+  .list-header-row .list-header {
+    margin-bottom: 0;
+    padding-left: 0;
+  }
+
+  /* ── Compact mode (edit mode) ── */
+  body.edit-mode #bookmark-list { display: block !important; }
+  body.edit-mode .bookmark-item {
+    padding: 5px 10px;
+    min-height: 0;
+    cursor: grab;
+  }
+  body.edit-mode .bookmark-item:active { cursor: grabbing; }
+  body.edit-mode .item-body { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  body.edit-mode .item-title { font-size: 13px; flex-shrink: 0; max-width: 40%; }
+  body.edit-mode .item-url { margin-top: 0; font-size: 11px; }
+  body.edit-mode .item-url a { pointer-events: none; }
 </style>
 </head>
 <body>
@@ -386,7 +443,15 @@
     </div>
   </form>
 
-  <div class="list-header">&gt; SAVED ENTRIES ({{ items|length }})</div>
+  <div class="list-header-row">
+    <div class="list-header">&gt; SAVED ENTRIES ({{ items|length }})</div>
+    <div class="col-btns" id="col-btns">
+      <button class="btn-col active" id="btn-col-1" onclick="setColumns(1)">1</button>
+      <button class="btn-col" id="btn-col-2" onclick="setColumns(2)">2</button>
+      <button class="btn-col" id="btn-col-3" onclick="setColumns(3)">3</button>
+      <button class="btn-col" id="btn-col-4" onclick="setColumns(4)">4</button>
+    </div>
+  </div>
 
   {% if items %}
   <ul id="bookmark-list">
@@ -453,10 +518,13 @@ function toggleEditMode() {
   const btn = document.getElementById("btn-edit-mode");
   btn.classList.toggle("active-edit", editMode);
   btn.textContent = editMode ? "[ EXIT EDIT ]" : "[ EDIT ]";
-  // update sortable
-  if (sortableInst) sortableInst.option("disabled", !editMode);
-  // close any open edit panels when leaving edit mode
-  if (!editMode) {
+  if (editMode) {
+    // force single column in edit mode, update sortable handle to full item
+    setColumns(1, true);
+    if (sortableInst) { sortableInst.option("handle", ".bookmark-item"); sortableInst.option("disabled", false); }
+  } else {
+    // restore handle to drag-handle icon
+    if (sortableInst) { sortableInst.option("handle", ".drag-handle"); sortableInst.option("disabled", true); }
     document.querySelectorAll(".edit-panel.open").forEach(p => p.classList.remove("open"));
   }
 }
@@ -472,6 +540,21 @@ function toggleAddMode() {
     // focus url field
     form.querySelector('input[name="url"]').focus();
   }
+}
+
+/* ── Column layout ── */
+let currentCols = 1;
+function setColumns(n, fromEdit) {
+  const listEl = document.getElementById("bookmark-list");
+  if (!listEl) return;
+  if (!fromEdit) currentCols = n;
+  listEl.classList.remove("cols-2", "cols-3", "cols-4");
+  if (n > 1) listEl.classList.add("cols-" + n);
+  // update button states
+  [1,2,3,4].forEach(i => {
+    const b = document.getElementById("btn-col-" + i);
+    if (b) b.classList.toggle("active", i === n);
+  });
 }
 
 /* ── Sortable ── */
