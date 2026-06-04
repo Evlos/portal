@@ -17,6 +17,23 @@
     --card:   #0f0f0f;
     --border: #1a2a1a;
   }
+  /* Light mode overrides */
+  body.light-mode {
+    --green:  #007744;
+    --dim:    #009955;
+    --muted:  #559977;
+    --red:    #cc2233;
+    --yellow: #996600;
+    --blue:   #006699;
+    --bg:     #f4f4f0;
+    --card:   #ffffff;
+    --border: #c8ddd0;
+  }
+  body.light-mode { background: var(--bg); color: var(--green); }
+  body.light-mode .bookmark-item:hover { background: #eaf4ee; }
+  body.light-mode .edit-panel { background: #eef6f2; }
+  body.light-mode #toast { background: var(--card); }
+  body.light-mode ::selection { background: var(--green); color: #fff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
@@ -167,6 +184,8 @@
     align-items: center;
     gap: 12px;
     min-height: 52px;
+    min-width: 0;
+    width: 100%;
   }
   .bookmark-item:hover {
     border-left-color: var(--green);
@@ -362,6 +381,9 @@
   #bookmark-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
   #bookmark-list.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   #bookmark-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  #bookmark-list.cols-2 .bookmark-item,
+  #bookmark-list.cols-3 .bookmark-item,
+  #bookmark-list.cols-4 .bookmark-item { margin-bottom: 0; }
   /* In multi-col mode, edit-panels span all columns */
   #bookmark-list.cols-2 .edit-panel,
   #bookmark-list.cols-3 .edit-panel,
@@ -424,6 +446,7 @@
     <div class="header-actions">
       <button class="btn-mode" id="btn-add-mode" onclick="toggleAddMode()">[ ADD ]</button>
       <button class="btn-mode" id="btn-edit-mode" onclick="toggleEditMode()">[ EDIT ]</button>
+      <button class="btn-mode" id="btn-theme" onclick="toggleTheme()">[ LIGHT ]</button>
     </div>
   </header>
 
@@ -506,6 +529,14 @@
 /* ── Mode state ── */
 let editMode = false;
 let addMode  = false;
+let lightMode = false;
+
+function toggleTheme() {
+  lightMode = !lightMode;
+  document.body.classList.toggle("light-mode", lightMode);
+  const btn = document.getElementById("btn-theme");
+  btn.textContent = lightMode ? "[ DARK ]" : "[ LIGHT ]";
+}
 
 function toggleEditMode() {
   editMode = !editMode;
