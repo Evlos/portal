@@ -5,12 +5,12 @@
 ██   ██ ██    ██ ██   ██    ██    ██   ██ ██
 ██████  ██    ██ ██████     ██    ███████ ██
 ██      ██    ██ ██   ██    ██    ██   ██ ██
-██████  ██████  ██   ██    ██    ██   ██ ███████
+██       ██████  ██   ██    ██    ██   ██ ███████
 ```
 
 **// BOOKMARKS — terminal link vault**
 
-A cyberpunk-style minimalist bookmark management website built with Flask and SQLite, featuring drag-and-drop sorting and one-click Docker deployment.
+A cyberpunk-style minimalist bookmark management website built with Flask and SQLite, featuring drag-and-drop sorting, multi-column layout, light/dark theme switching, and one-click Docker deployment.
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
@@ -34,10 +34,13 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 ## ✦ Features
 
 - **CRUD operations** — Add, edit, and delete bookmarks with custom titles.
-- **Edit mode** — Click `[ EDIT ]` in the top-right corner to enter edit mode; the button turns yellow. Only in edit mode are the per-item EDIT and DEL buttons visible (no hover required), and drag-and-drop reordering enabled. Click again to exit.
+- **Edit mode** — Click `[ EDIT ]` in the top-right corner to enter edit mode; the button turns yellow. Only in edit mode are the per-item EDIT and DEL buttons visible, and drag-and-drop reordering enabled. Click again to exit.
 - **Add mode** — Click `[ ADD ]` in the top-right corner to reveal the ADD NEW ENTRY form. A `[ CANCEL ]` button inside the form exits add mode without submitting. Add mode and edit mode are mutually exclusive.
+- **Multi-column layout** — Switch the entry list between 1 / 2 / 3 / 4 column grid layouts via the toolbar next to the entry count. Column preference is persisted across sessions.
+- **Light / Dark theme** — Toggle between the default dark terminal palette and a high-contrast light mode via the `[ LIGHT ]` / `[ DARK ]` button in the header. Theme preference is persisted across sessions.
+- **Persistent preferences** — Column layout and theme selections are saved to `localStorage` and automatically restored on every page load.
 - **Delete confirmation** — Deleting a bookmark requires a second confirmation via a modal overlay, preventing accidental removal.
-- **Drag-and-drop sorting** — Drag items to instantly save their order using SortableJS (only available in edit mode), with no data lost on refresh.
+- **Drag-and-drop sorting** — Drag items to instantly reorder them using SortableJS (only available in edit mode). Edit mode automatically switches to single-column layout for reliable drag behaviour; the entire row acts as the drag target.
 - **Inline editing** — Click EDIT to expand the editing panel directly in the list, eliminating the need for page redirects.
 - **Toast notifications** — Lightweight, terminal-style pop-ups appear after every action.
 - **Zero frontend dependencies** — The project only imports SortableJS via CDN, avoiding heavy frontend frameworks.
@@ -50,9 +53,10 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 
 | Mode | Trigger | Effect |
 | :-- | :-- | :-- |
-| **Normal** | Default | Read-only view; EDIT/DEL buttons hidden; drag disabled |
-| **Edit mode** | `[ EDIT ]` button (top-right) | Shows EDIT/DEL buttons on every item; enables drag-and-drop reordering |
+| **Normal** | Default | Read-only view; EDIT/DEL buttons and drag handle hidden; multi-column layout available |
+| **Edit mode** | `[ EDIT ]` button (top-right) | Auto-switches to single column; shows compact single-line entries; entire row is draggable; shows EDIT/DEL buttons |
 | **Add mode** | `[ ADD ]` button (top-right) | Reveals the ADD NEW ENTRY form; `[ CANCEL ]` hides it again |
+| **Light mode** | `[ LIGHT ]` button (top-right) | Switches to a high-contrast light palette; preference saved automatically |
 
 > Edit mode and add mode are mutually exclusive — activating one automatically exits the other.
 
@@ -66,6 +70,7 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 | Template engine | Jinja2 |
 | Frontend interaction | Vanilla JS · SortableJS 1.15 |
 | UI style | Cyberpunk terminal, pure CSS variables |
+| Preference persistence | `localStorage` |
 | Containerization | Docker (Alpine multi-stage build) |
 | Testing framework | pytest · Flask Test Client |
 
