@@ -532,6 +532,7 @@ function toggleTheme() {
   document.body.classList.toggle("light-mode", lightMode);
   const btn = document.getElementById("btn-theme");
   btn.textContent = lightMode ? "[ DARK ]" : "[ LIGHT ]";
+  localStorage.setItem("bm_theme", lightMode ? "light" : "dark");
 }
 
 function toggleEditMode() {
@@ -577,12 +578,28 @@ function setColumns(n, fromEdit) {
   if (!fromEdit) currentCols = n;
   listEl.classList.remove("cols-2", "cols-3", "cols-4");
   if (n > 1) listEl.classList.add("cols-" + n);
-  // update button states
   [1,2,3,4].forEach(i => {
     const b = document.getElementById("btn-col-" + i);
     if (b) b.classList.toggle("active", i === n);
   });
+  if (!fromEdit) localStorage.setItem("bm_cols", n);
 }
+
+/* ── Restore saved preferences ── */
+(function() {
+  const savedTheme = localStorage.getItem("bm_theme");
+  if (savedTheme === "light") {
+    lightMode = true;
+    document.body.classList.add("light-mode");
+    const btn = document.getElementById("btn-theme");
+    if (btn) btn.textContent = "[ DARK ]";
+  }
+  const savedCols = parseInt(localStorage.getItem("bm_cols") || "1", 10);
+  if (savedCols >= 1 && savedCols <= 4) {
+    currentCols = savedCols;
+    setColumns(savedCols);
+  }
+})();
 
 /* ── Sortable ── */
 const list = document.getElementById("bookmark-list");
