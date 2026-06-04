@@ -26,6 +26,8 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 
 ![Preview](https://raw.githubusercontent.com/Evlos/uploads/refs/heads/main/%20BOOKMARKS%20-%20Google%20Chrome_2026-03-30_13-56-35.jpg)
 
+![Preview](https://raw.githubusercontent.com/Evlos/uploads/refs/heads/main/%20BOOKMARKS%20-%20Google%20Chrome_2026-06-04_18-49-20.jpg)
+
 ---
 
 
