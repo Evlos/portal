@@ -405,6 +405,28 @@
   .btn-col:hover { border-color: var(--dim); color: var(--dim); }
   .btn-col.active { border-color: var(--blue); color: var(--blue); }
 
+  /* Width toggle buttons */
+  .width-btns {
+    display: flex;
+    gap: 4px;
+    margin-left: 16px;
+    border-left: 1px solid var(--muted);
+    padding-left: 16px;
+  }
+  .btn-width {
+    background: transparent;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-width:hover { border-color: var(--dim); color: var(--dim); }
+  .btn-width.active { border-color: var(--green); color: var(--green); }
+
   /* list-header row: align items in one line */
   .list-header-row {
     display: flex;
@@ -469,6 +491,12 @@
       <button class="btn-col" id="btn-col-2" onclick="setColumns(2)">2</button>
       <button class="btn-col" id="btn-col-3" onclick="setColumns(3)">3</button>
       <button class="btn-col" id="btn-col-4" onclick="setColumns(4)">4</button>
+    </div>
+    <div class="width-btns" id="width-btns">
+      <button class="btn-width" id="btn-w-760" onclick="setWidth('760px')">760</button>
+      <button class="btn-width" id="btn-w-960" onclick="setWidth('960px')">960</button>
+      <button class="btn-width" id="btn-w-1024" onclick="setWidth('1024px')">1024</button>
+      <button class="btn-width" id="btn-w-98pct" onclick="setWidth('98%')">98%</button>
     </div>
   </div>
 
@@ -585,6 +613,26 @@ function setColumns(n, fromEdit) {
   if (!fromEdit) localStorage.setItem("bm_cols", n);
 }
 
+/* ── Container Width ── */
+const WIDTH_OPTIONS = {
+  '760px':  'btn-w-760',
+  '960px':  'btn-w-960',
+  '1024px': 'btn-w-1024',
+  '98%':    'btn-w-98pct'
+};
+let currentWidth = '760px';
+
+function setWidth(w) {
+  currentWidth = w;
+  const containerEl = document.querySelector('.container');
+  if (containerEl) containerEl.style.maxWidth = w;
+  Object.entries(WIDTH_OPTIONS).forEach(([val, id]) => {
+    const b = document.getElementById(id);
+    if (b) b.classList.toggle('active', val === w);
+  });
+  localStorage.setItem('bm_width', w);
+}
+
 /* ── Restore saved preferences ── */
 (function() {
   const savedTheme = localStorage.getItem("bm_theme");
@@ -598,6 +646,12 @@ function setColumns(n, fromEdit) {
   if (savedCols >= 1 && savedCols <= 4) {
     currentCols = savedCols;
     setColumns(savedCols);
+  }
+  const savedWidth = localStorage.getItem("bm_width");
+  if (savedWidth && WIDTH_OPTIONS.hasOwnProperty(savedWidth)) {
+    setWidth(savedWidth);
+  } else {
+    setWidth('760px');
   }
 })();
 
