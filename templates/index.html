@@ -6,7 +6,6 @@
 <title>// BOOKMARKS</title>
 
 <script>
-  // Apply saved theme before first paint to avoid flash-of-wrong-theme
   (function () {
     var savedTheme = localStorage.getItem('bmTheme');
     if (savedTheme === 'dark') {
@@ -20,7 +19,6 @@
 <script>
   tailwind.config = { darkMode: 'class' };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-mono min-h-screen transition-colors duration-200">
@@ -93,18 +91,25 @@
     {% for item in items %}
     <li class="bookmarkItem flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 min-h-[52px] transition hover:border-indigo-400"
         data-id="{{ item.id }}" id="item-{{ item.id }}">
-      <span class="dragHandle hidden text-gray-400 select-none cursor-grab">&#10783;</span>
       <div class="flex-1 min-w-0">
         <div class="itemTitle text-sm truncate">{{ item.title }}</div>
         <div class="itemUrl text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
           <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.url }}</a>
         </div>
       </div>
-      <div class="itemActions hidden gap-2 flex-shrink-0">
-        <button class="px-2.5 py-1 text-[11px] border border-amber-400 text-amber-500 rounded hover:bg-amber-400 hover:text-white transition"
+      <div class="itemActions hidden gap-2 flex-shrink-0 flex-wrap justify-end" id="actions-{{ item.id }}">
+        <button class="btnEdit px-2.5 py-1 text-[11px] border border-amber-400 text-amber-500 rounded hover:bg-amber-400 hover:text-white transition"
           onclick="openEdit({{ item.id }}, event)">EDIT</button>
-        <button class="px-2.5 py-1 text-[11px] border border-rose-400 text-rose-500 rounded hover:bg-rose-400 hover:text-white transition"
+        <button class="btnDelete px-2.5 py-1 text-[11px] border border-rose-400 text-rose-500 rounded hover:bg-rose-400 hover:text-white transition"
           onclick="confirmDelete({{ item.id }}, event)">DEL</button>
+        <button class="btnMove px-2.5 py-1 text-[11px] border border-indigo-400 text-indigo-500 rounded hover:bg-indigo-400 hover:text-white transition"
+          onclick="startMove({{ item.id }}, event)">MOVE</button>
+        <button class="btnCancelMove hidden px-2.5 py-1 text-[11px] border border-gray-400 text-gray-500 rounded hover:bg-gray-400 hover:text-white transition"
+          onclick="cancelMove(event)">CANCEL</button>
+        <button class="btnInsertBefore hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
+          onclick="insertRelative({{ item.id }}, 'before', event)">INSERT BEFORE</button>
+        <button class="btnInsertAfter hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
+          onclick="insertRelative({{ item.id }}, 'after', event)">INSERT AFTER</button>
       </div>
     </li>
     <div class="editPanel hidden flex-col gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 -mt-1" id="edit-{{ item.id }}">
@@ -149,6 +154,7 @@
    ══════════════════════════════════════════════ */
 let editMode = false;
 let addMode = false;
+let movingId = null;
 
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark');
@@ -167,21 +173,15 @@ function toggleEditMode() {
     setAddButtonActive(false);
   }
 
-  document.querySelectorAll('.dragHandle').forEach(el => el.classList.toggle('hidden', !editMode));
   document.querySelectorAll('.itemActions').forEach(el => el.classList.toggle('hidden', !editMode));
-  document.querySelectorAll('.bookmarkItem').forEach(el => el.classList.toggle('cursor-grab', editMode));
 
   const btn = document.getElementById('btnEditMode');
   btn.textContent = editMode ? '[ EXIT EDIT ]' : '[ EDIT ]';
   btn.classList.toggle('border-amber-500', editMode);
   btn.classList.toggle('text-amber-500', editMode);
 
-  if (editMode) {
-    setColumns(1, true); // force single column while editing
-    if (sortableInst) { sortableInst.option('handle', '.bookmarkItem'); sortableInst.option('disabled', false); }
-  } else {
-    if (sortableInst) { sortableInst.option('handle', '.dragHandle'); sortableInst.option('disabled', true); }
-    document.querySelectorAll('.editPanel').forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
+  if (!editMode && movingId !== null) {
+    cancelMove();
   }
 }
 
@@ -207,10 +207,10 @@ function toggleAddMode() {
 let currentCols = 1;
 const COL_CLASS_MAP = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
 
-function setColumns(n, fromEdit) {
+function setColumns(n) {
   const listEl = document.getElementById('bookmarkList');
   if (!listEl) return;
-  if (!fromEdit) currentCols = n;
+  currentCols = n;
 
   listEl.classList.remove('grid', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'flex', 'flex-col', 'gap-2');
   if (n > 1) {
@@ -227,10 +227,8 @@ function setColumns(n, fromEdit) {
     }
   });
 
-  if (!fromEdit) {
-    localStorage.setItem('bmCols', n);
-    console.log('[layout:cols] saved bmCols =', n);
-  }
+  localStorage.setItem('bmCols', n);
+  console.log('[layout:cols] saved bmCols =', n);
 }
 
 /* ══════════════════════════════════════════════
@@ -269,34 +267,6 @@ function setWidth(w) {
 
   console.log('[init] restored preferences:', { savedTheme, savedCols, savedWidth });
 })();
-
-/* ══════════════════════════════════════════════
-   Sortable (drag & drop reorder)
-   ══════════════════════════════════════════════ */
-const bookmarkListEl = document.getElementById('bookmarkList');
-let sortableInst = null;
-if (bookmarkListEl) {
-  sortableInst = new Sortable(bookmarkListEl, {
-    animation: 150,
-    handle: '.dragHandle',
-    ghostClass: 'opacity-30',
-    dragClass: 'cursor-grabbing',
-    disabled: true,
-    onEnd: function () {
-      const ids = [...bookmarkListEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
-      console.log('[reorder] new order =', ids);
-      fetch('/reorder', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(ids)
-      })
-      .then(res => res.json())
-      .then(data => console.log('[reorder] server response:', data))
-      .catch(err => console.error('[reorder] failed:', err));
-      toast('ORDER SAVED');
-    }
-  });
-}
 
 /* ══════════════════════════════════════════════
    Inline edit
@@ -349,6 +319,87 @@ async function saveEdit(id) {
 }
 
 /* ══════════════════════════════════════════════
+   Move / reorder (button based, no drag & drop)
+   ══════════════════════════════════════════════ */
+function startMove(id, e) {
+  e.stopPropagation();
+  movingId = id;
+  console.log('[move:start] movingId =', id);
+
+  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.add('hidden'));
+
+  const sourceCancelBtn = document.querySelector('#actions-' + id + ' .btnCancelMove');
+  if (sourceCancelBtn) sourceCancelBtn.classList.remove('hidden');
+
+  document.querySelectorAll('.bookmarkItem').forEach(li => {
+    const itemId = +li.dataset.id;
+    if (itemId === id) return;
+    const before = document.querySelector('#actions-' + itemId + ' .btnInsertBefore');
+    const after = document.querySelector('#actions-' + itemId + ' .btnInsertAfter');
+    if (before) before.classList.remove('hidden');
+    if (after) after.classList.remove('hidden');
+  });
+}
+
+function cancelMove(e) {
+  if (e) e.stopPropagation();
+  console.log('[move:cancel] movingId was =', movingId);
+  movingId = null;
+
+  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.remove('hidden'));
+  document.querySelectorAll('.btnCancelMove').forEach(btn => btn.classList.add('hidden'));
+  document.querySelectorAll('.btnInsertBefore').forEach(btn => btn.classList.add('hidden'));
+  document.querySelectorAll('.btnInsertAfter').forEach(btn => btn.classList.add('hidden'));
+}
+
+async function insertRelative(targetId, position, e) {
+  e.stopPropagation();
+  const sourceId = movingId;
+  console.log('[move:insert]', { sourceId, targetId, position });
+  if (sourceId === null || sourceId === targetId) { cancelMove(); return; }
+
+  const listEl = document.getElementById('bookmarkList');
+  const sourceLi = document.getElementById('item-' + sourceId);
+  const sourceEdit = document.getElementById('edit-' + sourceId);
+  const targetLi = document.getElementById('item-' + targetId);
+  const targetEdit = document.getElementById('edit-' + targetId);
+
+  if (!sourceLi || !targetLi) {
+    console.error('[move:insert] missing DOM node for source or target');
+    cancelMove();
+    return;
+  }
+
+  if (position === 'before') {
+    listEl.insertBefore(sourceLi, targetLi);
+    if (sourceEdit) listEl.insertBefore(sourceEdit, targetLi);
+  } else {
+    const anchor = targetEdit ? targetEdit.nextSibling : targetLi.nextSibling;
+    listEl.insertBefore(sourceLi, anchor);
+    if (sourceEdit) listEl.insertBefore(sourceEdit, anchor);
+  }
+
+  const newOrder = [...listEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
+  console.log('[move:insert] new order =', newOrder);
+
+  try {
+    const res = await fetch('/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newOrder)
+    });
+    const data = await res.json();
+    console.log('[move:insert] server response:', data);
+    toast('ORDER SAVED');
+  } catch (err) {
+    console.error('[move:insert] request failed:', err);
+    toast('NETWORK ERROR', true);
+  }
+
+  cancelMove();
+}
+
+/* ══════════════════════════════════════════════
    Delete with confirm
    ══════════════════════════════════════════════ */
 let pendingDeleteId = null;
@@ -385,6 +436,7 @@ async function executeDelete(id) {
       document.getElementById('item-' + id).remove();
       const ep = document.getElementById('edit-' + id);
       if (ep) ep.remove();
+      if (movingId === id) cancelMove();
 
       const count = document.querySelectorAll('.bookmarkItem').length;
       document.getElementById('listHeader').textContent = '> SAVED ENTRIES (' + count + ')';
