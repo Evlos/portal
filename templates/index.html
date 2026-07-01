@@ -4,752 +4,421 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>// BOOKMARKS</title>
+
+<script>
+  // Apply saved theme before first paint to avoid flash-of-wrong-theme
+  (function () {
+    var savedTheme = localStorage.getItem('bmTheme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+    console.log('[theme:init] localStorage bmTheme =', savedTheme);
+  })();
+</script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-<style>
-  :root {
-    --green:  #00ff88;
-    --dim:    #00aa55;
-    --muted:  #005533;
-    --red:    #ff4455;
-    --yellow: #ffcc00;
-    --blue:   #00ccff;
-    --bg:     #0a0a0a;
-    --card:   #0f0f0f;
-    --border: #1a2a1a;
-  }
-  /* Light mode overrides */
-  body.light-mode {
-    --green:  #007744;
-    --dim:    #009955;
-    --muted:  #559977;
-    --red:    #cc2233;
-    --yellow: #996600;
-    --blue:   #006699;
-    --bg:     #f4f4f0;
-    --card:   #ffffff;
-    --border: #c8ddd0;
-  }
-  body.light-mode { background: var(--bg); color: var(--green); }
-  body.light-mode .bookmark-item:hover { background: #eaf4ee; }
-  body.light-mode .edit-panel { background: #eef6f2; }
-  body.light-mode #toast { background: var(--card); }
-  body.light-mode ::selection { background: var(--green); color: #fff; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--green);
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 14px;
-    min-height: 100vh;
-    padding: 40px 20px;
-  }
-  ::selection { background: var(--green); color: var(--bg); }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
-
-  .container { max-width: 760px; margin: 0 auto; }
-
-  /* HEADER */
-  header {
-    margin-bottom: 36px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-  }
-  .header-left {}
-  .logo {
-    font-size: 22px;
-    letter-spacing: 6px;
-    color: var(--green);
-    text-transform: uppercase;
-    border-left: 3px solid var(--green);
-    padding-left: 12px;
-    margin-bottom: 6px;
-  }
-  .subtitle { color: var(--muted); font-size: 12px; letter-spacing: 2px; }
-
-  /* HEADER BUTTONS */
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-    margin-top: 4px;
-  }
-  .btn-mode {
-    background: transparent;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 11px;
-    letter-spacing: 2px;
-    padding: 5px 14px;
-    cursor: pointer;
-    transition: border-color .15s, color .15s, background .15s;
-  }
-  .btn-mode:hover { border-color: var(--dim); color: var(--dim); }
-  .btn-mode.active-edit  { border-color: var(--yellow); color: var(--yellow); }
-  .btn-mode.active-add   { border-color: var(--blue);   color: var(--blue); }
-
-  /* FORM */
-  .add-form {
-    background: var(--card);
-    border: 1px solid var(--border);
-    padding: 20px;
-    margin-bottom: 32px;
-    display: none;
-  }
-  .add-form.visible { display: block; }
-  .add-form .prompt {
-    color: var(--dim);
-    font-size: 12px;
-    letter-spacing: 1px;
-    margin-bottom: 14px;
-  }
-  .field-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    align-items: center;
-  }
-  .field-label {
-    color: var(--muted);
-    min-width: 54px;
-    font-size: 12px;
-  }
-  input[type="text"], input[type="url"] {
-    flex: 1;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    color: var(--green);
-    font-family: inherit;
-    font-size: 14px;
-    padding: 4px 6px;
-    outline: none;
-    transition: border-color .2s;
-  }
-  input[type="text"]:focus, input[type="url"]:focus {
-    border-bottom-color: var(--green);
-  }
-  input::placeholder { color: var(--muted); }
-  .form-actions { display: flex; gap: 10px; margin-top: 12px; }
-  .btn-submit {
-    display: inline-block;
-    background: transparent;
-    border: 1px solid var(--green);
-    color: var(--green);
-    font-family: inherit;
-    font-size: 13px;
-    padding: 7px 22px;
-    cursor: pointer;
-    letter-spacing: 2px;
-    transition: background .15s, color .15s;
-  }
-  .btn-submit:hover { background: var(--green); color: var(--bg); }
-  .btn-cancel-add {
-    display: inline-block;
-    background: transparent;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 13px;
-    padding: 7px 22px;
-    cursor: pointer;
-    letter-spacing: 2px;
-    transition: background .15s, color .15s;
-  }
-  .btn-cancel-add:hover { background: var(--muted); color: var(--bg); }
-
-  /* LIST */
-  .list-header {
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 3px;
-    margin-bottom: 10px;
-    padding-left: 4px;
-  }
-  #bookmark-list { list-style: none; }
-
-  .bookmark-item {
-    position: relative;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--muted);
-    padding: 13px 14px;
-    margin-bottom: 6px;
-    cursor: default;
-    transition: border-color .15s, background .15s;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    min-width: 0;
-    width: 100%;
-  }
-  .bookmark-item:hover {
-    border-left-color: var(--green);
-    background: #111;
-  }
-  /* edit mode: allow grab cursor */
-  body.edit-mode .bookmark-item { cursor: grab; }
-  body.edit-mode .bookmark-item:active { cursor: grabbing; }
-
-  .bookmark-item.sortable-ghost {
-    opacity: .3;
-    border-left-color: var(--yellow);
-  }
-  .bookmark-item.sortable-drag { cursor: grabbing; }
-
-  .drag-handle {
-    color: var(--muted);
-    font-size: 16px;
-    user-select: none;
-    flex-shrink: 0;
-    line-height: 1;
-    cursor: default;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .15s;
-  }
-  /* show drag cursor & icon only in edit mode */
-  body.edit-mode .drag-handle { cursor: grab; color: var(--dim); opacity: 1; pointer-events: auto; }
-
-  .item-body { flex: 1; min-width: 0; }
-  .item-title {
-    color: var(--green);
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .item-url {
-    color: var(--muted);
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 3px;
-  }
-  .item-url a { color: var(--muted); text-decoration: none; }
-  .item-url a:hover { color: var(--dim); text-decoration: underline; }
-
-  /* ACTIONS — hidden by default, shown only in edit mode */
-  .item-actions {
-    display: none;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  body.edit-mode .item-actions {
-    display: flex;
-  }
-  .btn-action {
-    background: transparent;
-    border: 1px solid transparent;
-    font-family: inherit;
-    font-size: 11px;
-    letter-spacing: 1px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: border-color .15s, color .15s;
-  }
-  .btn-edit  { color: var(--yellow); border-color: var(--yellow); }
-  .btn-edit:hover  { background: var(--yellow); color: var(--bg); }
-  .btn-delete{ color: var(--red);    border-color: var(--red); }
-  .btn-delete:hover{ background: var(--red);    color: #fff; }
-
-  /* INLINE EDIT */
-  .edit-panel {
-    display: none;
-    padding: 10px 14px 10px 40px;
-    background: #111;
-    border: 1px solid var(--border);
-    border-top: none;
-    margin-top: -6px;
-    margin-bottom: 6px;
-    gap: 10px;
-    flex-direction: column;
-  }
-  .edit-panel.open { display: flex; }
-  .edit-row { display: flex; gap: 10px; align-items: center; }
-  .edit-label { color: var(--muted); min-width: 54px; font-size: 12px; }
-  .edit-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    color: var(--green);
-    font-family: inherit;
-    font-size: 13px;
-    padding: 4px 6px;
-    outline: none;
-  }
-  .edit-input:focus { border-bottom-color: var(--green); }
-  .edit-actions { display: flex; gap: 8px; margin-top: 4px; }
-  .btn-save   { color: var(--green); border: 1px solid var(--green); }
-  .btn-save:hover   { background: var(--green); color: var(--bg); }
-  .btn-cancel { color: var(--muted); border: 1px solid var(--muted); }
-  .btn-cancel:hover { background: var(--muted); color: var(--bg); }
-
-  .empty-state {
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 2px;
-    padding: 28px 14px;
-    border: 1px dashed var(--border);
-    text-align: center;
-  }
-
-  /* CONFIRM OVERLAY */
-  .confirm-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .2s;
-  }
-  .confirm-overlay.show { opacity: 1; pointer-events: auto; }
-  .confirm-box {
-    background: var(--card);
-    border: 1px solid var(--red);
-    padding: 28px 32px;
-    text-align: center;
-    min-width: 280px;
-  }
-  .confirm-box p {
-    color: var(--red);
-    font-size: 13px;
-    letter-spacing: 1px;
-    margin-bottom: 20px;
-  }
-  .confirm-actions { display: flex; gap: 12px; justify-content: center; }
-  .btn-confirm-yes {
-    background: transparent;
-    border: 1px solid var(--red);
-    color: var(--red);
-    font-family: inherit;
-    font-size: 12px;
-    letter-spacing: 2px;
-    padding: 6px 20px;
-    cursor: pointer;
-    transition: background .15s, color .15s;
-  }
-  .btn-confirm-yes:hover { background: var(--red); color: #fff; }
-  .btn-confirm-no {
-    background: transparent;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 12px;
-    letter-spacing: 2px;
-    padding: 6px 20px;
-    cursor: pointer;
-    transition: background .15s, color .15s;
-  }
-  .btn-confirm-no:hover { background: var(--muted); color: var(--bg); }
-
-  /* toast */
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--card);
-    border: 1px solid var(--green);
-    color: var(--green);
-    font-family: monospace;
-    font-size: 12px;
-    padding: 10px 18px;
-    letter-spacing: 1px;
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity .3s, transform .3s;
-    pointer-events: none;
-  }
-  #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.err  { border-color: var(--red); color: var(--red); }
-
-  /* ── Column layout ── */
-  #bookmark-list.cols-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-  #bookmark-list.cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  #bookmark-list.cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  #bookmark-list.cols-2 .bookmark-item,
-  #bookmark-list.cols-3 .bookmark-item,
-  #bookmark-list.cols-4 .bookmark-item { margin-bottom: 0; }
-  /* In multi-col mode, edit-panels span all columns */
-  #bookmark-list.cols-2 .edit-panel,
-  #bookmark-list.cols-3 .edit-panel,
-  #bookmark-list.cols-4 .edit-panel { grid-column: 1 / -1; }
-
-  /* ── Column toggle buttons ── */
-  .col-btns {
-    display: flex;
-    gap: 4px;
-    margin-left: 12px;
-  }
-  .btn-col {
-    background: transparent;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: border-color .15s, color .15s;
-  }
-  .btn-col:hover { border-color: var(--dim); color: var(--dim); }
-  .btn-col.active { border-color: var(--blue); color: var(--blue); }
-
-  /* Width toggle buttons */
-  .width-btns {
-    display: flex;
-    gap: 4px;
-    margin-left: 16px;
-    border-left: 1px solid var(--muted);
-    padding-left: 16px;
-  }
-  .btn-width {
-    background: transparent;
-    border: 1px solid var(--muted);
-    color: var(--muted);
-    font-family: inherit;
-    font-size: 10px;
-    letter-spacing: 1px;
-    padding: 3px 8px;
-    cursor: pointer;
-    transition: border-color .15s, color .15s;
-  }
-  .btn-width:hover { border-color: var(--dim); color: var(--dim); }
-  .btn-width.active { border-color: var(--green); color: var(--green); }
-
-  /* list-header row: align items in one line */
-  .list-header-row {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-left: 4px;
-  }
-  .list-header-row .list-header {
-    margin-bottom: 0;
-    padding-left: 0;
-  }
-
-  /* ── Compact mode (edit mode) ── */
-  body.edit-mode #bookmark-list { display: block !important; }
-  body.edit-mode .bookmark-item {
-    padding: 5px 10px;
-    min-height: 0;
-    cursor: grab;
-  }
-  body.edit-mode .bookmark-item:active { cursor: grabbing; }
-  body.edit-mode .item-body { display: flex; align-items: center; gap: 10px; min-width: 0; }
-  body.edit-mode .item-title { font-size: 13px; flex-shrink: 0; max-width: 40%; }
-  body.edit-mode .item-url { margin-top: 0; font-size: 11px; }
-  body.edit-mode .item-url a { pointer-events: none; }
-</style>
 </head>
-<body>
-<div class="container">
 
-  <header>
-    <div class="header-left">
-      <div class="logo">// BOOKMARKS</div>
-      <div class="subtitle">__ terminal link vault __</div>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-mono min-h-screen transition-colors duration-200">
+<div class="max-w-3xl mx-auto px-4 py-10" id="containerEl">
+
+  <!-- ── Header ── -->
+  <header class="flex items-start justify-between mb-8 flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl font-bold tracking-widest border-l-4 border-indigo-500 pl-3">// BOOKMARKS</h1>
+      <p class="text-xs text-gray-400 dark:text-gray-500 tracking-widest mt-1">terminal link vault</p>
     </div>
-    <div class="header-actions">
-      <button class="btn-mode" id="btn-add-mode" onclick="toggleAddMode()">[ ADD ]</button>
-      <button class="btn-mode" id="btn-edit-mode" onclick="toggleEditMode()">[ EDIT ]</button>
-      <button class="btn-mode" id="btn-theme" onclick="toggleTheme()">[ LIGHT ]</button>
+    <div class="flex items-center gap-2">
+      <button id="btnAddMode" onclick="toggleAddMode()"
+        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
+        [ ADD ]
+      </button>
+      <button id="btnEditMode" onclick="toggleEditMode()"
+        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-500 transition">
+        [ EDIT ]
+      </button>
+      <button id="btnTheme" onclick="toggleTheme()"
+        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition">
+        [ DARK ]
+      </button>
     </div>
   </header>
 
-  <form class="add-form" id="add-form" action="/add" method="post">
-    <div class="prompt">&gt; ADD NEW ENTRY</div>
-    <div class="field-row">
-      <span class="field-label">TITLE</span>
-      <input type="text" name="title" placeholder="optional label..." autocomplete="off">
+  <!-- ── Add form ── -->
+  <form id="addForm" action="/add" method="post"
+    class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 mb-8 shadow-sm">
+    <div class="text-xs text-blue-500 tracking-wide mb-4">&gt; ADD NEW ENTRY</div>
+    <div class="flex items-center gap-3 mb-3">
+      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">TITLE</label>
+      <input type="text" name="title" placeholder="optional label..." autocomplete="off"
+        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
     </div>
-    <div class="field-row">
-      <span class="field-label">URL</span>
-      <input type="url" name="url" placeholder="https://..." required autocomplete="off">
+    <div class="flex items-center gap-3 mb-4">
+      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">URL</label>
+      <input type="url" name="url" placeholder="https://..." required autocomplete="off"
+        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
     </div>
-    <div class="form-actions">
-      <button type="submit" class="btn-submit">[ SAVE ]</button>
-      <button type="button" class="btn-cancel-add" onclick="toggleAddMode()">[ CANCEL ]</button>
+    <div class="flex gap-3">
+      <button type="submit"
+        class="px-5 py-1.5 text-xs tracking-widest border border-indigo-500 text-indigo-500 rounded hover:bg-indigo-500 hover:text-white transition">[ SAVE ]</button>
+      <button type="button" onclick="toggleAddMode()"
+        class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
     </div>
   </form>
 
-  <div class="list-header-row">
-    <div class="list-header">&gt; SAVED ENTRIES ({{ items|length }})</div>
-    <div class="col-btns" id="col-btns">
-      <button class="btn-col active" id="btn-col-1" onclick="setColumns(1)">1</button>
-      <button class="btn-col" id="btn-col-2" onclick="setColumns(2)">2</button>
-      <button class="btn-col" id="btn-col-3" onclick="setColumns(3)">3</button>
-      <button class="btn-col" id="btn-col-4" onclick="setColumns(4)">4</button>
+  <!-- ── List header row ── -->
+  <div class="flex items-center flex-wrap gap-3 mb-4">
+    <div class="text-xs text-gray-400 dark:text-gray-500 tracking-widest" id="listHeader">&gt; SAVED ENTRIES ({{ items|length }})</div>
+    <div class="flex gap-1" id="colBtns">
+      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="1" onclick="setColumns(1)">1</button>
+      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="2" onclick="setColumns(2)">2</button>
+      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="3" onclick="setColumns(3)">3</button>
+      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="4" onclick="setColumns(4)">4</button>
     </div>
-    <div class="width-btns" id="width-btns">
-      <button class="btn-width" id="btn-w-760" onclick="setWidth('760px')">760</button>
-      <button class="btn-width" id="btn-w-960" onclick="setWidth('960px')">960</button>
-      <button class="btn-width" id="btn-w-1024" onclick="setWidth('1024px')">1024</button>
-      <button class="btn-width" id="btn-w-98pct" onclick="setWidth('98%')">98%</button>
+    <div class="flex gap-1 pl-3 border-l border-gray-300 dark:border-gray-600" id="widthBtns">
+      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="760px" onclick="setWidth('760px')">760</button>
+      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="960px" onclick="setWidth('960px')">960</button>
+      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="1024px" onclick="setWidth('1024px')">1024</button>
+      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="98%" onclick="setWidth('98%')">98%</button>
     </div>
   </div>
 
+  <!-- ── Bookmark list ── -->
   {% if items %}
-  <ul id="bookmark-list">
+  <ul id="bookmarkList" class="flex flex-col gap-2">
     {% for item in items %}
-    <li class="bookmark-item" data-id="{{ item.id }}" id="item-{{ item.id }}">
-      <span class="drag-handle">&#10783;</span>
-      <div class="item-body">
-        <div class="item-title">{{ item.title }}</div>
-        <div class="item-url"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.url }}</a></div>
+    <li class="bookmarkItem flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 min-h-[52px] transition hover:border-indigo-400"
+        data-id="{{ item.id }}" id="item-{{ item.id }}">
+      <span class="dragHandle hidden text-gray-400 select-none cursor-grab">&#10783;</span>
+      <div class="flex-1 min-w-0">
+        <div class="itemTitle text-sm truncate">{{ item.title }}</div>
+        <div class="itemUrl text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
+          <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.url }}</a>
+        </div>
       </div>
-      <div class="item-actions">
-        <button class="btn-action btn-edit"   onclick="openEdit({{ item.id }}, event)">EDIT</button>
-        <button class="btn-action btn-delete" onclick="confirmDelete({{ item.id }}, event)">DEL</button>
+      <div class="itemActions hidden gap-2 flex-shrink-0">
+        <button class="px-2.5 py-1 text-[11px] border border-amber-400 text-amber-500 rounded hover:bg-amber-400 hover:text-white transition"
+          onclick="openEdit({{ item.id }}, event)">EDIT</button>
+        <button class="px-2.5 py-1 text-[11px] border border-rose-400 text-rose-500 rounded hover:bg-rose-400 hover:text-white transition"
+          onclick="confirmDelete({{ item.id }}, event)">DEL</button>
       </div>
     </li>
-    <div class="edit-panel" id="edit-{{ item.id }}">
-      <div class="edit-row">
-        <span class="edit-label">TITLE</span>
-        <input class="edit-input" id="et-{{ item.id }}" type="text" value="{{ item.title }}" autocomplete="off">
+    <div class="editPanel hidden flex-col gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 -mt-1" id="edit-{{ item.id }}">
+      <div class="flex items-center gap-3">
+        <label class="w-14 text-xs text-gray-400">TITLE</label>
+        <input class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm" id="et-{{ item.id }}" type="text" value="{{ item.title }}" autocomplete="off">
       </div>
-      <div class="edit-row">
-        <span class="edit-label">URL</span>
-        <input class="edit-input" id="eu-{{ item.id }}" type="url"  value="{{ item.url }}" autocomplete="off">
+      <div class="flex items-center gap-3">
+        <label class="w-14 text-xs text-gray-400">URL</label>
+        <input class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm" id="eu-{{ item.id }}" type="url" value="{{ item.url }}" autocomplete="off">
       </div>
-      <div class="edit-actions">
-        <button class="btn-action btn-save"   onclick="saveEdit({{ item.id }})">[ SAVE ]</button>
-        <button class="btn-action btn-cancel" onclick="closeEdit({{ item.id }})">[ CANCEL ]</button>
+      <div class="flex gap-2">
+        <button class="px-4 py-1 text-[11px] border border-indigo-500 text-indigo-500 rounded hover:bg-indigo-500 hover:text-white transition" onclick="saveEdit({{ item.id }})">[ SAVE ]</button>
+        <button class="px-4 py-1 text-[11px] border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition" onclick="closeEdit({{ item.id }})">[ CANCEL ]</button>
       </div>
     </div>
     {% endfor %}
   </ul>
   {% else %}
-  <div class="empty-state">_ NO ENTRIES YET _</div>
+  <div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>
   {% endif %}
 
 </div>
 
-<!-- Delete confirmation overlay -->
-<div class="confirm-overlay" id="confirm-overlay">
-  <div class="confirm-box">
-    <p>&gt; CONFIRM DELETE?<br>THIS ACTION CANNOT BE UNDONE.</p>
-    <div class="confirm-actions">
-      <button class="btn-confirm-yes" id="confirm-yes">[ DELETE ]</button>
-      <button class="btn-confirm-no"  onclick="cancelDelete()">[ CANCEL ]</button>
+<!-- ── Confirm delete overlay ── -->
+<div id="confirmOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+  <div class="bg-white dark:bg-gray-800 border border-rose-400 rounded-lg px-8 py-7 text-center min-w-[280px]">
+    <p class="text-rose-500 text-sm mb-5 leading-relaxed">&gt; CONFIRM DELETE?<br>THIS ACTION CANNOT BE UNDONE.</p>
+    <div class="flex gap-3 justify-center">
+      <button id="confirmYes" class="px-5 py-1.5 text-xs tracking-widest border border-rose-500 text-rose-500 rounded hover:bg-rose-500 hover:text-white transition">[ DELETE ]</button>
+      <button onclick="cancelDelete()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
     </div>
   </div>
 </div>
 
-<div id="toast"></div>
+<!-- ── Toast ── -->
+<div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-gray-800 border border-indigo-500 text-indigo-500 text-xs px-4 py-2.5 rounded-lg opacity-0 translate-y-2 transition-all duration-300 pointer-events-none z-50"></div>
 
 <script>
-/* ── Mode state ── */
+/* ══════════════════════════════════════════════
+   Mode state
+   ══════════════════════════════════════════════ */
 let editMode = false;
-let addMode  = false;
-let lightMode = false;
+let addMode = false;
 
 function toggleTheme() {
-  lightMode = !lightMode;
-  document.body.classList.toggle("light-mode", lightMode);
-  const btn = document.getElementById("btn-theme");
-  btn.textContent = lightMode ? "[ DARK ]" : "[ LIGHT ]";
-  localStorage.setItem("bm_theme", lightMode ? "light" : "dark");
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('bmTheme', isDark ? 'dark' : 'light');
+  document.getElementById('btnTheme').textContent = isDark ? '[ LIGHT ]' : '[ DARK ]';
+  console.log('[theme:toggle] now dark =', isDark);
 }
 
 function toggleEditMode() {
   editMode = !editMode;
+  console.log('[mode:edit] editMode =', editMode);
+
   if (editMode && addMode) {
     addMode = false;
-    document.getElementById("add-form").classList.remove("visible");
-    document.getElementById("btn-add-mode").classList.remove("active-add");
+    document.getElementById('addForm').classList.add('hidden');
+    setAddButtonActive(false);
   }
-  document.body.classList.toggle("edit-mode", editMode);
-  const btn = document.getElementById("btn-edit-mode");
-  btn.classList.toggle("active-edit", editMode);
-  btn.textContent = editMode ? "[ EXIT EDIT ]" : "[ EDIT ]";
+
+  document.querySelectorAll('.dragHandle').forEach(el => el.classList.toggle('hidden', !editMode));
+  document.querySelectorAll('.itemActions').forEach(el => el.classList.toggle('hidden', !editMode));
+  document.querySelectorAll('.bookmarkItem').forEach(el => el.classList.toggle('cursor-grab', editMode));
+
+  const btn = document.getElementById('btnEditMode');
+  btn.textContent = editMode ? '[ EXIT EDIT ]' : '[ EDIT ]';
+  btn.classList.toggle('border-amber-500', editMode);
+  btn.classList.toggle('text-amber-500', editMode);
+
   if (editMode) {
-    // force single column in edit mode, update sortable handle to full item
-    setColumns(1, true);
-    if (sortableInst) { sortableInst.option("handle", ".bookmark-item"); sortableInst.option("disabled", false); }
+    setColumns(1, true); // force single column while editing
+    if (sortableInst) { sortableInst.option('handle', '.bookmarkItem'); sortableInst.option('disabled', false); }
   } else {
-    // restore handle to drag-handle icon
-    if (sortableInst) { sortableInst.option("handle", ".drag-handle"); sortableInst.option("disabled", true); }
-    document.querySelectorAll(".edit-panel.open").forEach(p => p.classList.remove("open"));
+    if (sortableInst) { sortableInst.option('handle', '.dragHandle'); sortableInst.option('disabled', true); }
+    document.querySelectorAll('.editPanel').forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
   }
+}
+
+function setAddButtonActive(active) {
+  const btn = document.getElementById('btnAddMode');
+  btn.classList.toggle('border-blue-500', active);
+  btn.classList.toggle('text-blue-500', active);
 }
 
 function toggleAddMode() {
   addMode = !addMode;
-  const form = document.getElementById("add-form");
-  const btn  = document.getElementById("btn-add-mode");
-  form.classList.toggle("visible", addMode);
-  btn.classList.toggle("active-add", addMode);
-  btn.textContent = addMode ? "[ EXIT ADD ]" : "[ ADD ]";
-  if (addMode) {
-    // focus url field
-    form.querySelector('input[name="url"]').focus();
-  }
+  console.log('[mode:add] addMode =', addMode);
+  const form = document.getElementById('addForm');
+  form.classList.toggle('hidden', !addMode);
+  setAddButtonActive(addMode);
+  document.getElementById('btnAddMode').textContent = addMode ? '[ EXIT ADD ]' : '[ ADD ]';
+  if (addMode) form.querySelector('input[name="url"]').focus();
 }
 
-/* ── Column layout ── */
+/* ══════════════════════════════════════════════
+   Column layout
+   ══════════════════════════════════════════════ */
 let currentCols = 1;
+const COL_CLASS_MAP = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
+
 function setColumns(n, fromEdit) {
-  const listEl = document.getElementById("bookmark-list");
+  const listEl = document.getElementById('bookmarkList');
   if (!listEl) return;
   if (!fromEdit) currentCols = n;
-  listEl.classList.remove("cols-2", "cols-3", "cols-4");
-  if (n > 1) listEl.classList.add("cols-" + n);
-  [1,2,3,4].forEach(i => {
-    const b = document.getElementById("btn-col-" + i);
-    if (b) b.classList.toggle("active", i === n);
+
+  listEl.classList.remove('grid', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'flex', 'flex-col', 'gap-2');
+  if (n > 1) {
+    listEl.classList.add('grid', COL_CLASS_MAP[n], 'gap-2');
+  } else {
+    listEl.classList.add('flex', 'flex-col', 'gap-2');
+  }
+
+  [1, 2, 3, 4].forEach(i => {
+    const b = document.querySelector('.btnCol[data-cols="' + i + '"]');
+    if (b) {
+      b.classList.toggle('border-blue-500', i === n);
+      b.classList.toggle('text-blue-500', i === n);
+    }
   });
-  if (!fromEdit) localStorage.setItem("bm_cols", n);
+
+  if (!fromEdit) {
+    localStorage.setItem('bmCols', n);
+    console.log('[layout:cols] saved bmCols =', n);
+  }
 }
 
-/* ── Container Width ── */
-const WIDTH_OPTIONS = {
-  '760px':  'btn-w-760',
-  '960px':  'btn-w-960',
-  '1024px': 'btn-w-1024',
-  '98%':    'btn-w-98pct'
-};
-let currentWidth = '760px';
+/* ══════════════════════════════════════════════
+   Container width
+   ══════════════════════════════════════════════ */
+const WIDTH_OPTIONS = ['760px', '960px', '1024px', '98%'];
 
 function setWidth(w) {
-  currentWidth = w;
-  const containerEl = document.querySelector('.container');
+  const containerEl = document.getElementById('containerEl');
   if (containerEl) containerEl.style.maxWidth = w;
-  Object.entries(WIDTH_OPTIONS).forEach(([val, id]) => {
-    const b = document.getElementById(id);
-    if (b) b.classList.toggle('active', val === w);
+  WIDTH_OPTIONS.forEach(val => {
+    const b = document.querySelector('.btnWidth[data-width="' + val + '"]');
+    if (b) {
+      b.classList.toggle('border-indigo-500', val === w);
+      b.classList.toggle('text-indigo-500', val === w);
+    }
   });
-  localStorage.setItem('bm_width', w);
+  localStorage.setItem('bmWidth', w);
+  console.log('[layout:width] saved bmWidth =', w);
 }
 
-/* ── Restore saved preferences ── */
-(function() {
-  const savedTheme = localStorage.getItem("bm_theme");
-  if (savedTheme === "light") {
-    lightMode = true;
-    document.body.classList.add("light-mode");
-    const btn = document.getElementById("btn-theme");
-    if (btn) btn.textContent = "[ DARK ]";
+/* ══════════════════════════════════════════════
+   Restore saved preferences on load
+   ══════════════════════════════════════════════ */
+(function restorePreferences() {
+  const savedTheme = localStorage.getItem('bmTheme');
+  if (savedTheme === 'dark') {
+    document.getElementById('btnTheme').textContent = '[ LIGHT ]';
   }
-  const savedCols = parseInt(localStorage.getItem("bm_cols") || "1", 10);
-  if (savedCols >= 1 && savedCols <= 4) {
-    currentCols = savedCols;
-    setColumns(savedCols);
-  }
-  const savedWidth = localStorage.getItem("bm_width");
-  if (savedWidth && WIDTH_OPTIONS.hasOwnProperty(savedWidth)) {
-    setWidth(savedWidth);
-  } else {
-    setWidth('760px');
-  }
+
+  const savedCols = parseInt(localStorage.getItem('bmCols') || '1', 10);
+  if (savedCols >= 1 && savedCols <= 4) setColumns(savedCols);
+
+  const savedWidth = localStorage.getItem('bmWidth');
+  setWidth(WIDTH_OPTIONS.includes(savedWidth) ? savedWidth : '760px');
+
+  console.log('[init] restored preferences:', { savedTheme, savedCols, savedWidth });
 })();
 
-/* ── Sortable ── */
-const list = document.getElementById("bookmark-list");
+/* ══════════════════════════════════════════════
+   Sortable (drag & drop reorder)
+   ══════════════════════════════════════════════ */
+const bookmarkListEl = document.getElementById('bookmarkList');
 let sortableInst = null;
-if (list) {
-  sortableInst = new Sortable(list, {
+if (bookmarkListEl) {
+  sortableInst = new Sortable(bookmarkListEl, {
     animation: 150,
-    handle: ".drag-handle",
-    ghostClass: "sortable-ghost",
-    dragClass: "sortable-drag",
-    disabled: true,   // disabled until edit mode
-    onEnd: function() {
-      const ids = [...list.querySelectorAll(".bookmark-item")].map(el => +el.dataset.id);
-      fetch("/reorder", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
+    handle: '.dragHandle',
+    ghostClass: 'opacity-30',
+    dragClass: 'cursor-grabbing',
+    disabled: true,
+    onEnd: function () {
+      const ids = [...bookmarkListEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
+      console.log('[reorder] new order =', ids);
+      fetch('/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ids)
-      });
-      toast("ORDER SAVED");
+      })
+      .then(res => res.json())
+      .then(data => console.log('[reorder] server response:', data))
+      .catch(err => console.error('[reorder] failed:', err));
+      toast('ORDER SAVED');
     }
   });
 }
 
-/* ── Inline edit ── */
+/* ══════════════════════════════════════════════
+   Inline edit
+   ══════════════════════════════════════════════ */
 function openEdit(id, e) {
   e.stopPropagation();
-  document.querySelectorAll(".edit-panel.open").forEach(p => p.classList.remove("open"));
-  document.getElementById("edit-" + id).classList.add("open");
+  document.querySelectorAll('.editPanel').forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
+  const panel = document.getElementById('edit-' + id);
+  panel.classList.remove('hidden');
+  panel.classList.add('flex');
+  console.log('[edit:open] id =', id);
 }
+
 function closeEdit(id) {
-  document.getElementById("edit-" + id).classList.remove("open");
+  const panel = document.getElementById('edit-' + id);
+  panel.classList.add('hidden');
+  panel.classList.remove('flex');
+  console.log('[edit:close] id =', id);
 }
+
 async function saveEdit(id) {
-  const title = document.getElementById("et-" + id).value.trim();
-  const url   = document.getElementById("eu-" + id).value.trim();
-  if (!url) { toast("URL REQUIRED", true); return; }
-  const res = await fetch("/edit/" + id, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({title, url})
-  });
-  const data = await res.json();
-  if (data.status === "ok") {
-    const li = document.getElementById("item-" + id);
-    li.querySelector(".item-title").textContent = data.title;
-    li.querySelector(".item-url a").textContent = data.url;
-    li.querySelector(".item-url a").href = data.url;
-    closeEdit(id);
-    toast("ENTRY UPDATED");
+  const title = document.getElementById('et-' + id).value.trim();
+  const url = document.getElementById('eu-' + id).value.trim();
+  if (!url) { toast('URL REQUIRED', true); return; }
+
+  console.log('[edit:save] id =', id, { title, url });
+  try {
+    const res = await fetch('/edit/' + id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, url })
+    });
+    const data = await res.json();
+    console.log('[edit:save] server response:', data);
+    if (data.status === 'ok') {
+      const li = document.getElementById('item-' + id);
+      li.querySelector('.itemTitle').textContent = data.title;
+      const anchor = li.querySelector('.itemUrl a');
+      anchor.textContent = data.url;
+      anchor.href = data.url;
+      closeEdit(id);
+      toast('ENTRY UPDATED');
+    } else {
+      toast(data.message || 'UPDATE FAILED', true);
+    }
+  } catch (err) {
+    console.error('[edit:save] request failed:', err);
+    toast('NETWORK ERROR', true);
   }
 }
 
-/* ── Delete with confirm ── */
+/* ══════════════════════════════════════════════
+   Delete with confirm
+   ══════════════════════════════════════════════ */
 let pendingDeleteId = null;
 
 function confirmDelete(id, e) {
   e.stopPropagation();
   pendingDeleteId = id;
-  document.getElementById("confirm-overlay").classList.add("show");
-  document.getElementById("confirm-yes").onclick = () => executeDelete(id);
+  const overlay = document.getElementById('confirmOverlay');
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  document.getElementById('confirmYes').onclick = () => executeDelete(id);
+  console.log('[delete:confirm] pending id =', id);
 }
+
 function cancelDelete() {
+  console.log('[delete:cancel] id =', pendingDeleteId);
   pendingDeleteId = null;
-  document.getElementById("confirm-overlay").classList.remove("show");
+  const overlay = document.getElementById('confirmOverlay');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
 }
+
 async function executeDelete(id) {
-  document.getElementById("confirm-overlay").classList.remove("show");
-  const res = await fetch("/delete/" + id, { method: "POST" });
-  const data = await res.json();
-  if (data.status === "ok") {
-    document.getElementById("item-" + id).remove();
-    const ep = document.getElementById("edit-" + id);
-    if (ep) ep.remove();
-    const count = document.querySelectorAll(".bookmark-item").length;
-    document.querySelector(".list-header").textContent = "> SAVED ENTRIES (" + count + ")";
-    if (!count) {
-      document.getElementById("bookmark-list").outerHTML =
-        '<div class="empty-state">_ NO ENTRIES YET _</div>';
+  const overlay = document.getElementById('confirmOverlay');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+
+  console.log('[delete:execute] id =', id);
+  try {
+    const res = await fetch('/delete/' + id, { method: 'POST' });
+    const data = await res.json();
+    console.log('[delete:execute] server response:', data);
+    if (data.status === 'ok') {
+      document.getElementById('item-' + id).remove();
+      const ep = document.getElementById('edit-' + id);
+      if (ep) ep.remove();
+
+      const count = document.querySelectorAll('.bookmarkItem').length;
+      document.getElementById('listHeader').textContent = '> SAVED ENTRIES (' + count + ')';
+
+      if (!count) {
+        document.getElementById('bookmarkList').outerHTML =
+          '<div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>';
+      }
+      toast('ENTRY DELETED');
     }
-    toast("ENTRY DELETED");
+  } catch (err) {
+    console.error('[delete:execute] request failed:', err);
+    toast('NETWORK ERROR', true);
   }
 }
 
-// close overlay on backdrop click
-document.getElementById("confirm-overlay").addEventListener("click", function(e) {
+document.getElementById('confirmOverlay').addEventListener('click', function (e) {
   if (e.target === this) cancelDelete();
 });
 
-/* ── Toast ── */
+/* ══════════════════════════════════════════════
+   Toast
+   ══════════════════════════════════════════════ */
 let toastTimer;
-function toast(msg, err=false) {
-  const el = document.getElementById("toast");
-  el.textContent = "> " + msg;
-  el.className = "show" + (err ? " err" : "");
+function toast(msg, isErr = false) {
+  const el = document.getElementById('toast');
+  el.textContent = '> ' + msg;
+  el.classList.remove('opacity-0', 'translate-y-2', 'border-indigo-500', 'text-indigo-500', 'border-rose-500', 'text-rose-500');
+  el.classList.add(isErr ? 'border-rose-500' : 'border-indigo-500', isErr ? 'text-rose-500' : 'text-indigo-500');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.className = "", 2200);
+  toastTimer = setTimeout(() => {
+    el.classList.add('opacity-0', 'translate-y-2');
+  }, 2200);
+  console.log('[toast]', isErr ? 'ERROR' : 'OK', msg);
 }
 </script>
 </body>
