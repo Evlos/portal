@@ -112,20 +112,6 @@
           onclick="insertRelative({{ item.id }}, 'after', event)">INSERT AFTER</button>
       </div>
     </li>
-    <div class="editPanel hidden flex-col gap-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 -mt-1" id="edit-{{ item.id }}">
-      <div class="flex items-center gap-3">
-        <label class="w-14 text-xs text-gray-400">TITLE</label>
-        <input class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm" id="et-{{ item.id }}" type="text" value="{{ item.title }}" autocomplete="off">
-      </div>
-      <div class="flex items-center gap-3">
-        <label class="w-14 text-xs text-gray-400">URL</label>
-        <input class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm" id="eu-{{ item.id }}" type="url" value="{{ item.url }}" autocomplete="off">
-      </div>
-      <div class="flex gap-2">
-        <button class="px-4 py-1 text-[11px] border border-indigo-500 text-indigo-500 rounded hover:bg-indigo-500 hover:text-white transition" onclick="saveEdit({{ item.id }})">[ SAVE ]</button>
-        <button class="px-4 py-1 text-[11px] border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition" onclick="closeEdit({{ item.id }})">[ CANCEL ]</button>
-      </div>
-    </div>
     {% endfor %}
   </ul>
   {% else %}
@@ -141,6 +127,27 @@
     <div class="flex gap-3 justify-center">
       <button id="confirmYes" class="px-5 py-1.5 text-xs tracking-widest border border-rose-500 text-rose-500 rounded hover:bg-rose-500 hover:text-white transition">[ DELETE ]</button>
       <button onclick="cancelDelete()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit modal overlay ── -->
+<div id="editOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+  <div class="bg-white dark:bg-gray-800 border border-amber-400 rounded-lg px-6 py-6 w-[90%] max-w-md">
+    <div class="text-xs text-amber-500 tracking-wide mb-4">&gt; EDIT ENTRY</div>
+    <div class="flex items-center gap-3 mb-3">
+      <label class="w-14 text-xs text-gray-400">TITLE</label>
+      <input id="modalEditTitle" type="text" placeholder="optional label..." autocomplete="off"
+        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
+    </div>
+    <div class="flex items-center gap-3 mb-5">
+      <label class="w-14 text-xs text-gray-400">URL</label>
+      <input id="modalEditUrl" type="url" placeholder="https://..." autocomplete="off"
+        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
+    </div>
+    <div class="flex gap-3 justify-end">
+      <button id="modalEditSaveBtn" class="px-5 py-1.5 text-xs tracking-widest border border-amber-500 text-amber-500 rounded hover:bg-amber-500 hover:text-white transition">[ SAVE ]</button>
+      <button onclick="closeEditModal()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
     </div>
   </div>
 </div>
@@ -269,27 +276,49 @@ function setWidth(w) {
 })();
 
 /* ══════════════════════════════════════════════
-   Inline edit
+   Inline edit -> Modal edit
    ══════════════════════════════════════════════ */
+let currentEditId = null;
+
 function openEdit(id, e) {
   e.stopPropagation();
-  document.querySelectorAll('.editPanel').forEach(p => { p.classList.add('hidden'); p.classList.remove('flex'); });
-  const panel = document.getElementById('edit-' + id);
-  panel.classList.remove('hidden');
-  panel.classList.add('flex');
-  console.log('[edit:open] id =', id);
+  const li = document.getElementById('item-' + id);
+  if (!li) {
+    console.error('[edit:open] item not found, id =', id);
+    return;
+  }
+  currentEditId = id;
+
+  const title = li.querySelector('.itemTitle').textContent;
+  const url = li.querySelector('.itemUrl a').getAttribute('href');
+  document.getElementById('modalEditTitle').value = title;
+  document.getElementById('modalEditUrl').value = url;
+
+  const overlay = document.getElementById('editOverlay');
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  document.getElementById('modalEditTitle').focus();
+
+  console.log('[edit:open] id =', id, { title, url });
 }
 
-function closeEdit(id) {
-  const panel = document.getElementById('edit-' + id);
-  panel.classList.add('hidden');
-  panel.classList.remove('flex');
-  console.log('[edit:close] id =', id);
+function closeEditModal() {
+  console.log('[edit:close] id =', currentEditId);
+  const overlay = document.getElementById('editOverlay');
+  overlay.classList.add('hidden');
+  overlay.classList.remove('flex');
+  currentEditId = null;
 }
 
-async function saveEdit(id) {
-  const title = document.getElementById('et-' + id).value.trim();
-  const url = document.getElementById('eu-' + id).value.trim();
+async function saveEdit() {
+  const id = currentEditId;
+  if (id === null) {
+    console.warn('[edit:save] aborted, currentEditId is null');
+    return;
+  }
+
+  const title = document.getElementById('modalEditTitle').value.trim();
+  const url = document.getElementById('modalEditUrl').value.trim();
   if (!url) { toast('URL REQUIRED', true); return; }
 
   console.log('[edit:save] id =', id, { title, url });
@@ -301,15 +330,17 @@ async function saveEdit(id) {
     });
     const data = await res.json();
     console.log('[edit:save] server response:', data);
+
     if (data.status === 'ok') {
       const li = document.getElementById('item-' + id);
       li.querySelector('.itemTitle').textContent = data.title;
       const anchor = li.querySelector('.itemUrl a');
       anchor.textContent = data.url;
       anchor.href = data.url;
-      closeEdit(id);
+      closeEditModal();
       toast('ENTRY UPDATED');
     } else {
+      console.warn('[edit:save] server rejected update:', data.message);
       toast(data.message || 'UPDATE FAILED', true);
     }
   } catch (err) {
@@ -317,6 +348,11 @@ async function saveEdit(id) {
     toast('NETWORK ERROR', true);
   }
 }
+
+document.getElementById('modalEditSaveBtn').addEventListener('click', saveEdit);
+document.getElementById('editOverlay').addEventListener('click', function (e) {
+  if (e.target === this) closeEditModal();
+});
 
 /* ══════════════════════════════════════════════
    Move / reorder (button based, no drag & drop)
@@ -360,9 +396,7 @@ async function insertRelative(targetId, position, e) {
 
   const listEl = document.getElementById('bookmarkList');
   const sourceLi = document.getElementById('item-' + sourceId);
-  const sourceEdit = document.getElementById('edit-' + sourceId);
   const targetLi = document.getElementById('item-' + targetId);
-  const targetEdit = document.getElementById('edit-' + targetId);
 
   if (!sourceLi || !targetLi) {
     console.error('[move:insert] missing DOM node for source or target');
@@ -372,11 +406,8 @@ async function insertRelative(targetId, position, e) {
 
   if (position === 'before') {
     listEl.insertBefore(sourceLi, targetLi);
-    if (sourceEdit) listEl.insertBefore(sourceEdit, targetLi);
   } else {
-    const anchor = targetEdit ? targetEdit.nextSibling : targetLi.nextSibling;
-    listEl.insertBefore(sourceLi, anchor);
-    if (sourceEdit) listEl.insertBefore(sourceEdit, anchor);
+    listEl.insertBefore(sourceLi, targetLi.nextSibling);
   }
 
   const newOrder = [...listEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
@@ -434,8 +465,6 @@ async function executeDelete(id) {
     console.log('[delete:execute] server response:', data);
     if (data.status === 'ok') {
       document.getElementById('item-' + id).remove();
-      const ep = document.getElementById('edit-' + id);
-      if (ep) ep.remove();
       if (movingId === id) cancelMove();
 
       const count = document.querySelectorAll('.bookmarkItem').length;
