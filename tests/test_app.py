@@ -49,11 +49,11 @@ class TestAdd:
         add_bookmark(client, "https://github.com")
         assert b"https://github.com" in client.get("/").data
 
-    def test_add_without_url_redirects_safely(self, client):
-        res = client.post("/add", data={"url": "", "title": "No URL"},
-                          follow_redirects=True)
-        assert res.status_code == 200
-        assert b"NO ENTRIES YET" in res.data
+    def test_add_missing_url_returns_400(self, client):
+        res = client.post("/add", data={"url": "", "title": "No URL"})
+        assert res.status_code == 400
+        assert res.json["status"] == "error"
+        assert "url" in res.json["message"].lower()
 
     def test_sort_order_increments(self, client):
         add_bookmark(client, "https://a.com", "A")
