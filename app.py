@@ -36,7 +36,7 @@ def add():
     title = request.form.get("title", "").strip()
     url   = request.form.get("url", "").strip()
     if not url:
-        return redirect(url_for("index"))
+        return jsonify({"status": "error", "message": "URL required"}), 400
     with get_db() as conn:
         max_order = conn.execute("SELECT MAX(sort_order) FROM bookmarks").fetchone()[0]
         next_order = (max_order or 0) + 1
@@ -45,7 +45,7 @@ def add():
             (title or url, url, next_order)
         )
         conn.commit()
-    return redirect(url_for("index"))
+    return jsonify({"status": "ok", "title": title or url, "url": url})
 
 @app.route("/delete/<int:item_id>", methods=["POST"])
 def delete(item_id):

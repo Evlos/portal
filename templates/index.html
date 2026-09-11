@@ -453,6 +453,35 @@ function cancelDelete() {
   overlay.classList.remove('flex');
 }
 
+async function submitAddForm(e) {
+  e.preventDefault();
+  const form = e.target;
+  const title = form.title.value.trim();
+  const url   = form.url.value.trim();
+
+  console.log('[add:submit] title:', title, 'url:', url);
+  try {
+    const res = await fetch('/add', {
+      method: 'POST',
+      body: new URLSearchParams({ title, url })
+    });
+    const data = await res.json();
+    console.log('[add:submit] server response:', data);
+    if (data.status === 'ok') {
+      toast('ENTRY ADDED');
+      form.reset();
+      toggleAddMode();
+      setTimeout(() => location.reload(), 600);
+    } else {
+      toast('ADD FAILED: ' + (data.message || data.status), true);
+    }
+  } catch (err) {
+    console.error('[add:submit] request failed:', err);
+    toast('NETWORK ERROR', true);
+  }
+}
+
+document.getElementById('addForm').addEventListener('submit', submitAddForm);
 async function executeDelete(id) {
   const overlay = document.getElementById('confirmOverlay');
   overlay.classList.add('hidden');
