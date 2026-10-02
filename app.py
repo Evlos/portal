@@ -40,13 +40,12 @@ def add():
     with get_db() as conn:
         max_order = conn.execute("SELECT MAX(sort_order) FROM bookmarks").fetchone()[0]
         next_order = (max_order or 0) + 1
-        cur = conn.execute(
+        conn.execute(
             "INSERT INTO bookmarks (title, url, sort_order) VALUES (?, ?, ?)",
             (title or url, url, next_order)
         )
         conn.commit()
-        item_id = cur.lastrowid
-    return jsonify({"status": "ok", "id": item_id, "title": title or url, "url": url})
+    return jsonify({"status": "ok", "title": title or url, "url": url})
 
 @app.route("/delete/<int:item_id>", methods=["POST"])
 def delete(item_id):
