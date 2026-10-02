@@ -1,535 +1,1276 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en" data-theme="light" data-edit="off">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="// BOOKMARKS — a terminal link vault.">
 <title>// BOOKMARKS</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23080b0a'/><path d='M7 12l9 9 9-9' stroke='%233ee08c' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 
 <script>
-  (function () {
-    var savedTheme = localStorage.getItem('bmTheme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-    console.log('[theme:init] localStorage bmTheme =', savedTheme);
-  })();
+/* Restore the saved theme before first paint so the page never flashes. */
+(function () {
+  var saved = null;
+  try { saved = localStorage.getItem('bmTheme'); } catch (e) {}
+  document.documentElement.dataset.theme = (saved === 'dark' || saved === 'light') ? saved : 'light';
+})();
 </script>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = { darkMode: 'class' };
-</script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   1. Design tokens
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "Liberation Mono", "Noto Sans Mono", monospace;
+
+  /* light — warm paper & forest ink */
+  --bg:           #f2f0ea;
+  --bg-tint:      rgba(15, 138, 82, .05);
+  --surface:      #fbfaf6;
+  --surface-2:    #ffffff;
+  --border:       #ded8ca;
+  --border-soft:  #e9e4d9;
+  --border-strong:#bfb7a4;
+  --text:         #161c19;
+  --text-dim:     #66706a;
+  --text-faint:   #9aa29c;
+  --accent:       #0f8a52;
+  --accent-ink:   #0a6b3e;
+  --accent-soft:  rgba(15, 138, 82, .12);
+  --warn:         #a86b06;
+  --warn-soft:    rgba(168, 107, 6, .13);
+  --danger:       #c0392b;
+  --danger-soft:  rgba(192, 57, 43, .12);
+  --info:         #1c6a86;
+  --info-soft:    rgba(28, 106, 134, .12);
+  --grid:         rgba(22, 28, 25, .045);
+  --glow:         rgba(15, 138, 82, .16);
+  --scrim:        rgba(28, 27, 23, .55);
+  --shadow:       0 1px 2px rgba(22, 28, 25, .05), 0 12px 32px -18px rgba(22, 28, 25, .35);
+
+  --shell-w: 760px;
+  --r: 3px;
+  --speed: 180ms;
+}
+
+[data-theme="dark"] {
+  /* dark — phosphor green on ink */
+  --bg:           #080b0a;
+  --bg-tint:      rgba(62, 224, 140, .05);
+  --surface:      #0e1412;
+  --surface-2:    #131a17;
+  --border:       #1e2a25;
+  --border-soft:  #17211d;
+  --border-strong:#33453c;
+  --text:         #d9e5dd;
+  --text-dim:     #7f9088;
+  --text-faint:   #55645d;
+  --accent:       #3ee08c;
+  --accent-ink:   #0a0c0b;
+  --accent-soft:  rgba(62, 224, 140, .13);
+  --warn:         #f0b429;
+  --warn-soft:    rgba(240, 180, 41, .13);
+  --danger:       #ff6b6b;
+  --danger-soft:  rgba(255, 107, 107, .13);
+  --info:         #5ac8e0;
+  --info-soft:    rgba(90, 200, 224, .13);
+  --grid:         rgba(62, 224, 140, .055);
+  --glow:         rgba(62, 224, 140, .10);
+  --scrim:        rgba(3, 6, 5, .72);
+  --shadow:       0 1px 0 rgba(255, 255, 255, .02), 0 18px 40px -24px #000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   2. Base
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--speed) ease, color var(--speed) ease;
+}
+
+/* ambient grid + top glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 90% 65% at 50% -8%, #000 25%, transparent 100%);
+          mask-image: radial-gradient(ellipse 90% 65% at 50% -8%, #000 25%, transparent 100%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  left: 50%;
+  top: -22vh;
+  z-index: 0;
+  width: min(920px, 100vw);
+  height: 48vh;
+  translate: -50% 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, var(--glow), transparent 68%);
+}
+
+::selection { background: var(--accent-soft); color: var(--text); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.u-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   3. Shell
+   ═══════════════════════════════════════════════════════════ */
+.shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--shell-w);
+  margin-inline: auto;
+  padding: clamp(22px, 5vw, 52px) clamp(14px, 3.5vw, 28px) 64px;
+  transition: max-width var(--speed) ease;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+.brand__name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  font-size: clamp(17px, 3.2vw, 22px);
+  font-weight: 700;
+  letter-spacing: .2em;
+  line-height: 1.1;
+}
+.brand__slash { color: var(--accent); }
+.brand__caret {
+  width: .5em;
+  height: .95em;
+  background: var(--accent);
+  animation: blink 1.15s steps(1) infinite;
+}
+.brand__sub {
+  margin: 7px 0 0;
+  font-size: 10.5px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+@keyframes blink { 0%, 55% { opacity: 1 } 56%, 100% { opacity: 0 } }
+
+.head__actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════
+   4. Controls
+   ═══════════════════════════════════════════════════════════ */
+.btn {
+  --fg: var(--text-dim);
+  --bd: var(--border);
+  --bgd: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fg);
+  background: var(--bgd);
+  border: 1px solid var(--bd);
+  border-radius: var(--r);
+  padding: .58em .78em;
+  cursor: pointer;
+  transition: color var(--speed) ease, border-color var(--speed) ease,
+              background-color var(--speed) ease;
+}
+.btn:hover { --fg: var(--text); --bd: var(--border-strong); --bgd: var(--surface-2); }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: .4; pointer-events: none; }
+
+.btn--accent { --fg: var(--accent); --bd: var(--accent); }
+.btn--accent:hover { --fg: var(--accent-ink); --bgd: var(--accent); --bd: var(--accent); }
+.btn--warn   { --fg: var(--warn);   --bd: var(--warn); }
+.btn--warn:hover   { --fg: var(--bg); --bgd: var(--warn); }
+.btn--danger { --fg: var(--danger); --bd: var(--danger); }
+.btn--danger:hover { --fg: #fff; --bgd: var(--danger); }
+.btn--info   { --fg: var(--info);   --bd: var(--info); }
+.btn--info:hover   { --fg: var(--bg); --bgd: var(--info); }
+.btn--sm { padding: .45em .6em; font-size: 10px; letter-spacing: .1em; }
+.btn--block { width: 100%; }
+.btn[hidden] { display: none; }
+
+/* segmented control (columns / width) */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  background: var(--surface);
+}
+.seg__btn {
+  font: inherit;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  line-height: 1;
+  color: var(--text-faint);
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--border-soft);
+  padding: .55em .62em;
+  cursor: pointer;
+  transition: color var(--speed) ease, background-color var(--speed) ease;
+}
+.seg__btn:first-child { border-left: 0; }
+.seg__btn:hover { color: var(--text); background: var(--surface-2); }
+.seg__btn[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.seg__label {
+  align-self: center;
+  margin-right: 7px;
+  font-size: 9.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* text inputs */
+.field { display: grid; gap: 6px; }
+.field__label {
+  font-size: 9.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.input {
+  font: inherit;
+  font-size: 13px;
+  width: 100%;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: .6em .7em;
+  transition: border-color var(--speed) ease, box-shadow var(--speed) ease;
+}
+.input::placeholder { color: var(--text-faint); }
+.input:hover { border-color: var(--border-strong); }
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   5. Composer (add form)
+   ═══════════════════════════════════════════════════════════ */
+.composer {
+  border: 1px solid var(--accent);
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 22px;
+  display: grid;
+  gap: 13px;
+}
+.composer[hidden] { display: none; }
+.composer__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.composer__head::before {
+  content: ">";
+  color: var(--accent);
+  font-weight: 700;
+}
+.composer__row {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.composer__foot { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════════════════════════
+   6. Toolbar
+   ═══════════════════════════════════════════════════════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 9px 0 13px;
+  margin-bottom: 13px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.toolbar__count {
+  font-size: 10.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.toolbar__count b {
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.toolbar__controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════
+   7. List
+   ═══════════════════════════════════════════════════════════ */
+.list-wrap { container-type: inline-size; }
+
+.list { margin: 0; padding: 0; list-style: none; }
+.list[data-cols="1"] { display: flex; flex-direction: column; gap: 8px; }
+.list[data-cols="2"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.list[data-cols="3"] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.list[data-cols="4"] { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.list[hidden] { display: none; }
+
+.item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  container-type: inline-size;
+  transition: border-color var(--speed) ease, background-color var(--speed) ease;
+}
+.item::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--accent);
+  scale: 1 0;
+  transition: scale var(--speed) ease;
+}
+.item:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.item:hover::before { scale: 1 1; }
+
+.item__idx {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  user-select: none;
+}
+.item__body { min-width: 0; display: grid; gap: 2px; }
+.item__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item__url {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.item__url:hover { color: var(--accent); text-decoration: underline; }
+
+.item__host {
+  font-size: 9.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: .18em .42em;
+  white-space: nowrap;
+  /* definite length (not a percentage — the auto grid track has no definite
+     width to resolve against) so long hosts ellipsize instead of
+     starving the title column */
+  min-width: 0;
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item__actions {
+  grid-column: 1 / -1;
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+[data-edit="on"] .item__actions { display: flex; }
+
+/* move mode */
+.item.is-source {
+  border-color: var(--info);
+  box-shadow: 0 0 0 1px var(--info-soft);
+}
+.item.is-source::before { background: var(--info); scale: 1 1; }
+.item.is-target { border-style: dashed; border-color: var(--border-strong); }
+.item.is-target .item__title { color: var(--text-dim); }
+
+/* Each card adapts to its own width — drop the host chip, then the index,
+   so the title always keeps the room it needs in dense column layouts. */
+@container (max-width: 330px) {
+  .item__host { display: none; }
+}
+@container (max-width: 210px) {
+  .item__idx { display: none; }
+}
+
+/* when the whole list is narrow, the index column goes too */
+@container (max-width: 320px) {
+  .item { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* single column on small screens regardless of preference */
+@media (max-width: 640px) {
+  .list[data-cols="2"],
+  .list[data-cols="3"],
+  .list[data-cols="4"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* ── empty state ──────────────────────────────────────── */
+.empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 56px 20px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--r);
+  background:
+    repeating-linear-gradient(-45deg,
+      transparent 0 9px,
+      var(--bg-tint) 9px 10px);
+}
+.empty[hidden] { display: none; }
+.empty__title {
+  font-size: 12px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.empty__hint { font-size: 11px; color: var(--text-faint); }
+.empty__hint kbd {
+  font: inherit;
+  font-size: 10px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 2px;
+  padding: .1em .35em;
+  color: var(--text-dim);
+  background: var(--surface);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   8. Footer
+   ═══════════════════════════════════════════════════════════ */
+.foot {
+  margin-top: 34px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.foot__keys { display: flex; gap: 12px; flex-wrap: wrap; }
+.foot__keys kbd {
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: .1em .34em;
+  margin-right: 5px;
+  color: var(--text-dim);
+  background: var(--surface);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   9. Overlays
+   `inert` (not `visibility`) gates the closed state, so a dialog is
+   focusable the instant it opens instead of after the fade transition.
+   ═══════════════════════════════════════════════════════════ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--speed) ease;
+}
+.overlay[data-open="true"] { opacity: 1; pointer-events: auto; }
+
+.dialog {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 14px;
+  transform: translateY(6px);
+  transition: transform var(--speed) ease;
+}
+.overlay[data-open="true"] .dialog { transform: none; }
+.dialog--danger { border-top-color: var(--danger); }
+.dialog--warn   { border-top-color: var(--warn); }
+.dialog__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.dialog__title::before { content: ">"; color: var(--accent); font-weight: 700; }
+.dialog--danger .dialog__title::before { color: var(--danger); }
+.dialog--warn   .dialog__title::before { color: var(--warn); }
+.dialog__text { font-size: 12px; color: var(--text-dim); line-height: 1.7; }
+.dialog__text b { color: var(--text); font-weight: 500; word-break: break-all; }
+.dialog__foot { display: flex; gap: 8px; justify-content: flex-end; }
+.dialog__foot .btn--danger:hover { color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════
+   10. Toast
+   ═══════════════════════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 90;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 10px 14px;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-left-width: 3px;
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  translate: 0 8px;
+  pointer-events: none;
+  transition: opacity 220ms ease, translate 220ms ease;
+}
+.toast[data-show="true"] { opacity: 1; translate: 0; }
+.toast[data-kind="error"] { color: var(--danger); border-color: var(--danger); }
+
+/* ═══════════════════════════════════════════════════════════
+   11. Motion preferences
+   ═══════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .brand__caret { opacity: 1; }
+}
+</style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-mono min-h-screen transition-colors duration-200">
-<div class="max-w-3xl mx-auto px-4 py-10" id="containerEl">
+<body>
 
-  <!-- ── Header ── -->
-  <header class="flex items-start justify-between mb-8 flex-wrap gap-3">
-    <div>
-      <h1 class="text-2xl font-bold tracking-widest border-l-4 border-indigo-500 pl-3">// BOOKMARKS</h1>
-      <p class="text-xs text-gray-400 dark:text-gray-500 tracking-widest mt-1">terminal link vault</p>
+<main class="shell" id="shell">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="head">
+    <div class="brand">
+      <h1 class="brand__name">
+        <span class="brand__slash">//</span> BOOKMARKS
+        <span class="brand__caret" aria-hidden="true"></span>
+      </h1>
+      <p class="brand__sub">terminal link vault</p>
     </div>
-    <div class="flex items-center gap-2">
-      <button id="btnAddMode" onclick="toggleAddMode()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
-        [ ADD ]
-      </button>
-      <button id="btnEditMode" onclick="toggleEditMode()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-500 transition">
-        [ EDIT ]
-      </button>
-      <button id="btnTheme" onclick="toggleTheme()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition">
-        [ DARK ]
-      </button>
+
+    <div class="head__actions">
+      <button type="button" class="btn btn--accent" id="btnAdd" aria-expanded="false" aria-controls="addForm">+ ADD</button>
+      <button type="button" class="btn btn--warn"   id="btnEdit" aria-pressed="false">EDIT</button>
+      <button type="button" class="btn"              id="btnTheme">DARK</button>
     </div>
   </header>
 
-  <!-- ── Add form ── -->
-  <form id="addForm" action="/add" method="post"
-    class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 mb-8 shadow-sm">
-    <div class="text-xs text-blue-500 tracking-wide mb-4">&gt; ADD NEW ENTRY</div>
-    <div class="flex items-center gap-3 mb-3">
-      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">TITLE</label>
-      <input type="text" name="title" placeholder="optional label..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
+  <!-- ── Composer ───────────────────────────────────────── -->
+  <form class="composer" id="addForm" action="/add" method="post" hidden>
+    <div class="composer__head">Add new entry</div>
+
+    <div class="composer__row">
+      <label class="field__label" for="addTitle">Title</label>
+      <input class="input" id="addTitle" type="text" name="title" placeholder="optional label…" autocomplete="off" spellcheck="false">
     </div>
-    <div class="flex items-center gap-3 mb-4">
-      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">URL</label>
-      <input type="url" name="url" placeholder="https://..." required autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
+
+    <div class="composer__row">
+      <label class="field__label" for="addUrl">URL</label>
+      <input class="input" id="addUrl" type="url" name="url" placeholder="https://…" required autocomplete="off" spellcheck="false">
     </div>
-    <div class="flex gap-3">
-      <button type="submit"
-        class="px-5 py-1.5 text-xs tracking-widest border border-indigo-500 text-indigo-500 rounded hover:bg-indigo-500 hover:text-white transition">[ SAVE ]</button>
-      <button type="button" onclick="toggleAddMode()"
-        class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+
+    <div class="composer__foot">
+      <button type="button" class="btn" data-act="add-cancel">CANCEL</button>
+      <button type="submit" class="btn btn--accent">SAVE</button>
     </div>
   </form>
 
-  <!-- ── List header row ── -->
-  <div class="flex items-center flex-wrap gap-3 mb-4">
-    <div class="text-xs text-gray-400 dark:text-gray-500 tracking-widest" id="listHeader">&gt; SAVED ENTRIES ({{ items|length }})</div>
-    <div class="flex gap-1" id="colBtns">
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="1" onclick="setColumns(1)">1</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="2" onclick="setColumns(2)">2</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="3" onclick="setColumns(3)">3</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="4" onclick="setColumns(4)">4</button>
-    </div>
-    <div class="flex gap-1 pl-3 border-l border-gray-300 dark:border-gray-600" id="widthBtns">
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="760px" onclick="setWidth('760px')">760</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="960px" onclick="setWidth('960px')">960</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="1024px" onclick="setWidth('1024px')">1024</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="98%" onclick="setWidth('98%')">98%</button>
+  <!-- ── Toolbar ────────────────────────────────────────── -->
+  <div class="toolbar">
+    <div class="toolbar__count">&gt; Saved entries <b id="count">0</b></div>
+
+    <div class="toolbar__controls">
+      <div class="seg" role="group" aria-label="Columns per row">
+        <span class="seg__label">Cols</span>
+        <button type="button" class="seg__btn" data-cols="1" aria-pressed="true">1</button>
+        <button type="button" class="seg__btn" data-cols="2" aria-pressed="false">2</button>
+        <button type="button" class="seg__btn" data-cols="3" aria-pressed="false">3</button>
+        <button type="button" class="seg__btn" data-cols="4" aria-pressed="false">4</button>
+      </div>
+
+      <div class="seg" role="group" aria-label="Container width">
+        <span class="seg__label">Width</span>
+        <button type="button" class="seg__btn" data-width="760px"  aria-pressed="false">760</button>
+        <button type="button" class="seg__btn" data-width="960px"  aria-pressed="false">960</button>
+        <button type="button" class="seg__btn" data-width="1024px" aria-pressed="false">1024</button>
+        <button type="button" class="seg__btn" data-width="98%"    aria-pressed="false">98%</button>
+      </div>
     </div>
   </div>
 
-  <!-- ── Bookmark list ── -->
-  {% if items %}
-  <ul id="bookmarkList" class="flex flex-col gap-2">
-    {% for item in items %}
-    <li class="bookmarkItem flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 min-h-[52px] transition hover:border-indigo-400"
-        data-id="{{ item.id }}" id="item-{{ item.id }}">
-      <div class="flex-1 min-w-0">
-        <div class="itemTitle text-sm truncate">{{ item.title }}</div>
-        <div class="itemUrl text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-          <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.url }}</a>
+  <!-- ── List ───────────────────────────────────────────── -->
+  <div class="list-wrap">
+    <ul class="list" id="bookmarkList" data-cols="1"{% if not items %} hidden{% endif %}>
+      {% for item in items %}
+      {% set host = item.url.split('//')[-1].split('/')[0] %}
+      <li class="item" id="item-{{ item.id }}" data-id="{{ item.id }}">
+        <span class="item__idx">{{ '%02d' % loop.index }}</span>
+
+        <div class="item__body">
+          <div class="item__title">{{ item.title }}</div>
+          <a class="item__url" href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.url }}</a>
         </div>
-      </div>
-      <div class="itemActions hidden gap-2 flex-shrink-0 flex-wrap justify-end" id="actions-{{ item.id }}">
-        <button class="btnEdit px-2.5 py-1 text-[11px] border border-amber-400 text-amber-500 rounded hover:bg-amber-400 hover:text-white transition"
-          onclick="openEdit({{ item.id }}, event)">EDIT</button>
-        <button class="btnDelete px-2.5 py-1 text-[11px] border border-rose-400 text-rose-500 rounded hover:bg-rose-400 hover:text-white transition"
-          onclick="confirmDelete({{ item.id }}, event)">DEL</button>
-        <button class="btnMove px-2.5 py-1 text-[11px] border border-indigo-400 text-indigo-500 rounded hover:bg-indigo-400 hover:text-white transition"
-          onclick="startMove({{ item.id }}, event)">MOVE</button>
-        <button class="btnCancelMove hidden px-2.5 py-1 text-[11px] border border-gray-400 text-gray-500 rounded hover:bg-gray-400 hover:text-white transition"
-          onclick="cancelMove(event)">CANCEL</button>
-        <button class="btnInsertBefore hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
-          onclick="insertRelative({{ item.id }}, 'before', event)">INSERT BEFORE</button>
-        <button class="btnInsertAfter hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
-          onclick="insertRelative({{ item.id }}, 'after', event)">INSERT AFTER</button>
-      </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>
-  {% endif %}
 
-</div>
+        <span class="item__host">{{ host }}</span>
 
-<!-- ── Confirm delete overlay ── -->
-<div id="confirmOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 border border-rose-400 rounded-lg px-8 py-7 text-center min-w-[280px]">
-    <p class="text-rose-500 text-sm mb-5 leading-relaxed">&gt; CONFIRM DELETE?<br>THIS ACTION CANNOT BE UNDONE.</p>
-    <div class="flex gap-3 justify-center">
-      <button id="confirmYes" class="px-5 py-1.5 text-xs tracking-widest border border-rose-500 text-rose-500 rounded hover:bg-rose-500 hover:text-white transition">[ DELETE ]</button>
-      <button onclick="cancelDelete()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+        <div class="item__actions">
+          <button type="button" class="btn btn--sm btn--warn"   data-act="edit">Edit</button>
+          <button type="button" class="btn btn--sm btn--danger" data-act="delete">Del</button>
+          <button type="button" class="btn btn--sm btn--info"   data-act="move">Move</button>
+          <button type="button" class="btn btn--sm"              data-act="cancel-move" hidden>Cancel</button>
+          <button type="button" class="btn btn--sm btn--accent" data-act="before" hidden>Before</button>
+          <button type="button" class="btn btn--sm btn--accent" data-act="after"  hidden>After</button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="empty" id="emptyState"{% if items %} hidden{% endif %}>
+      <div class="empty__title">_ NO ENTRIES YET _</div>
+      <div class="empty__hint">Press <kbd>N</kbd> or hit <b>+ ADD</b> to store your first link.</div>
+    </div>
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer class="foot">
+    <div class="foot__keys">
+      <span><kbd>N</kbd>new</span>
+      <span><kbd>E</kbd>edit</span>
+      <span><kbd>T</kbd>theme</span>
+      <span><kbd>1</kbd>–<kbd>4</kbd>cols</span>
+      <span><kbd>Esc</kbd>close</span>
+    </div>
+    <div>sqlite · flask · zero deps</div>
+  </footer>
+
+</main>
+
+<!-- ── Edit dialog ──────────────────────────────────────── -->
+<div class="overlay" id="editOverlay" role="dialog" aria-modal="true" aria-labelledby="editDialogTitle" data-open="false" inert>
+  <div class="dialog dialog--warn">
+    <div class="dialog__title" id="editDialogTitle">Edit entry</div>
+    <form id="editForm" novalidate>
+      <div class="field" style="margin-bottom:12px">
+        <label class="field__label" for="editTitle">Title</label>
+        <input class="input" id="editTitle" type="text" placeholder="optional label…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label class="field__label" for="editUrl">URL</label>
+        <input class="input" id="editUrl" type="url" placeholder="https://…" autocomplete="off" spellcheck="false">
+      </div>
+    </form>
+    <div class="dialog__foot">
+      <button type="button" class="btn" data-act="edit-cancel">Cancel</button>
+      <button type="button" class="btn btn--warn" id="editSave">Save</button>
     </div>
   </div>
 </div>
 
-<!-- ── Edit modal overlay ── -->
-<div id="editOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 border border-amber-400 rounded-lg px-6 py-6 w-[90%] max-w-md">
-    <div class="text-xs text-amber-500 tracking-wide mb-4">&gt; EDIT ENTRY</div>
-    <div class="flex items-center gap-3 mb-3">
-      <label class="w-14 text-xs text-gray-400">TITLE</label>
-      <input id="modalEditTitle" type="text" placeholder="optional label..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
-    </div>
-    <div class="flex items-center gap-3 mb-5">
-      <label class="w-14 text-xs text-gray-400">URL</label>
-      <input id="modalEditUrl" type="url" placeholder="https://..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
-    </div>
-    <div class="flex gap-3 justify-end">
-      <button id="modalEditSaveBtn" class="px-5 py-1.5 text-xs tracking-widest border border-amber-500 text-amber-500 rounded hover:bg-amber-500 hover:text-white transition">[ SAVE ]</button>
-      <button onclick="closeEditModal()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+<!-- ── Delete dialog ────────────────────────────────────── -->
+<div class="overlay" id="deleteOverlay" role="dialog" aria-modal="true" aria-labelledby="deleteDialogTitle" data-open="false" inert>
+  <div class="dialog dialog--danger">
+    <div class="dialog__title" id="deleteDialogTitle">Confirm delete</div>
+    <p class="dialog__text">Permanently remove <b id="deleteTarget">this entry</b>? This cannot be undone.</p>
+    <div class="dialog__foot">
+      <button type="button" class="btn" data-act="delete-cancel">Cancel</button>
+      <button type="button" class="btn btn--danger" id="deleteConfirm">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- ── Toast ── -->
-<div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-gray-800 border border-indigo-500 text-indigo-500 text-xs px-4 py-2.5 rounded-lg opacity-0 translate-y-2 transition-all duration-300 pointer-events-none z-50"></div>
+<!-- ── Toast ────────────────────────────────────────────── -->
+<div class="toast" id="toast" role="status" aria-live="polite" data-show="false"></div>
+
+<!-- ── Template for entries created without a reload ────── -->
+<template id="itemTpl">
+  <li class="item">
+    <span class="item__idx"></span>
+    <div class="item__body">
+      <div class="item__title"></div>
+      <a class="item__url" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+    <span class="item__host"></span>
+    <div class="item__actions">
+      <button type="button" class="btn btn--sm btn--warn"   data-act="edit">Edit</button>
+      <button type="button" class="btn btn--sm btn--danger" data-act="delete">Del</button>
+      <button type="button" class="btn btn--sm btn--info"   data-act="move">Move</button>
+      <button type="button" class="btn btn--sm"              data-act="cancel-move" hidden>Cancel</button>
+      <button type="button" class="btn btn--sm btn--accent" data-act="before" hidden>Before</button>
+      <button type="button" class="btn btn--sm btn--accent" data-act="after"  hidden>After</button>
+    </div>
+  </li>
+</template>
 
 <script>
-/* ══════════════════════════════════════════════
-   Mode state
-   ══════════════════════════════════════════════ */
-let editMode = false;
-let addMode = false;
-let movingId = null;
+(() => {
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════ */
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const listEl     = $("#bookmarkList");
+const emptyEl    = $("#emptyState");
+const countEl    = $("#count");
+const addForm    = $("#addForm");
+const shellEl    = $("#shell");
+const themeBtn   = $("#btnTheme");
+const editBtn    = $("#btnEdit");
+const addBtn     = $("#btnAdd");
+
+const COLS   = [1, 2, 3, 4];
+const WIDTHS = ["760px", "960px", "1024px", "98%"];
+
+const state = {
+  cols: 1,
+  addMode: false,
+  editMode: false,
+  movingId: null,
+  editingId: null,
+  deletingId: null,
+};
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v === null ? fallback : v; }
+    catch (e) { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, String(value)); } catch (e) { /* private mode */ }
+  },
+};
+
+const hostOf = url => String(url).split("//").pop().split("/")[0];
+const items  = () => $$(".item", listEl);
+
+/* ═══════════════════════════════════════════════════════════
+   Toast
+   ═══════════════════════════════════════════════════════════ */
+const toastEl = $("#toast");
+let toastTimer;
+
+function toast(message, isError = false) {
+  toastEl.textContent = (isError ? "× " : "> ") + message;
+  toastEl.dataset.kind = isError ? "error" : "ok";
+  toastEl.dataset.show = "true";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.dataset.show = "false"; }, 2400);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Theme
+   ═══════════════════════════════════════════════════════════ */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeBtn.textContent = theme === "dark" ? "LIGHT" : "DARK";
+  themeBtn.setAttribute("aria-label", theme === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  store.set("bmTheme", theme);
+}
 
 function toggleTheme() {
-  const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('bmTheme', isDark ? 'dark' : 'light');
-  document.getElementById('btnTheme').textContent = isDark ? '[ LIGHT ]' : '[ DARK ]';
-  console.log('[theme:toggle] now dark =', isDark);
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+}
+themeBtn.addEventListener("click", toggleTheme);
+
+/* ═══════════════════════════════════════════════════════════
+   Layout — columns per row  (kept deliberately)
+   ═══════════════════════════════════════════════════════════ */
+function applyColumns(n) {
+  if (!COLS.includes(n)) n = 1;
+  state.cols = n;
+  listEl.dataset.cols = String(n);
+  $$(".seg__btn[data-cols]").forEach(b => {
+    b.setAttribute("aria-pressed", String(Number(b.dataset.cols) === n));
+  });
+  store.set("bmCols", n);
 }
 
-function toggleEditMode() {
-  editMode = !editMode;
-  console.log('[mode:edit] editMode =', editMode);
+$$(".seg__btn[data-cols]").forEach(b => {
+  b.addEventListener("click", () => applyColumns(Number(b.dataset.cols)));
+});
 
-  if (editMode && addMode) {
-    addMode = false;
-    document.getElementById('addForm').classList.add('hidden');
-    setAddButtonActive(false);
-  }
-
-  document.querySelectorAll('.itemActions').forEach(el => el.classList.toggle('hidden', !editMode));
-
-  const btn = document.getElementById('btnEditMode');
-  btn.textContent = editMode ? '[ EXIT EDIT ]' : '[ EDIT ]';
-  btn.classList.toggle('border-amber-500', editMode);
-  btn.classList.toggle('text-amber-500', editMode);
-
-  if (!editMode && movingId !== null) {
-    cancelMove();
-  }
+/* ── Container width ─────────────────────────────────────── */
+function applyWidth(w) {
+  if (!WIDTHS.includes(w)) w = "760px";
+  shellEl.style.maxWidth = w;
+  $$(".seg__btn[data-width]").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.width === w));
+  });
+  store.set("bmWidth", w);
 }
 
-function setAddButtonActive(active) {
-  const btn = document.getElementById('btnAddMode');
-  btn.classList.toggle('border-blue-500', active);
-  btn.classList.toggle('text-blue-500', active);
-}
+$$(".seg__btn[data-width]").forEach(b => {
+  b.addEventListener("click", () => applyWidth(b.dataset.width));
+});
 
-function toggleAddMode() {
-  addMode = !addMode;
-  console.log('[mode:add] addMode =', addMode);
-  const form = document.getElementById('addForm');
-  form.classList.toggle('hidden', !addMode);
-  setAddButtonActive(addMode);
-  document.getElementById('btnAddMode').textContent = addMode ? '[ EXIT ADD ]' : '[ ADD ]';
-  if (addMode) form.querySelector('input[name="url"]').focus();
-}
-
-/* ══════════════════════════════════════════════
-   Column layout
-   ══════════════════════════════════════════════ */
-let currentCols = 1;
-const COL_CLASS_MAP = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
-
-function setColumns(n) {
-  const listEl = document.getElementById('bookmarkList');
-  if (!listEl) return;
-  currentCols = n;
-
-  listEl.classList.remove('grid', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'flex', 'flex-col', 'gap-2');
-  if (n > 1) {
-    listEl.classList.add('grid', COL_CLASS_MAP[n], 'gap-2');
+/* ═══════════════════════════════════════════════════════════
+   Modes
+   ═══════════════════════════════════════════════════════════ */
+function setAddMode(on) {
+  state.addMode = on;
+  addForm.hidden = !on;
+  addBtn.setAttribute("aria-expanded", String(on));
+  addBtn.textContent = on ? "CLOSE" : "+ ADD";
+  if (on) {
+    if (state.editMode) setEditMode(false);
+    $("#addUrl").focus();
   } else {
-    listEl.classList.add('flex', 'flex-col', 'gap-2');
+    addForm.reset();
   }
+}
 
-  [1, 2, 3, 4].forEach(i => {
-    const b = document.querySelector('.btnCol[data-cols="' + i + '"]');
-    if (b) {
-      b.classList.toggle('border-blue-500', i === n);
-      b.classList.toggle('text-blue-500', i === n);
+addBtn.addEventListener("click", () => setAddMode(!state.addMode));
+addForm.addEventListener("submit", (e) => { e.preventDefault(); submitAdd(); });
+
+function setEditMode(on) {
+  state.editMode = on;
+  document.documentElement.dataset.edit = on ? "on" : "off";
+  editBtn.setAttribute("aria-pressed", String(on));
+  if (!on && state.movingId !== null) cancelMove();
+}
+editBtn.addEventListener("click", () => setEditMode(!state.editMode));
+
+/* ═══════════════════════════════════════════════════════════
+   List rendering helpers
+   ═══════════════════════════════════════════════════════════ */
+function renumber() {
+  items().forEach((li, i) => {
+    $(".item__idx", li).textContent = String(i + 1).padStart(2, "0");
+  });
+}
+
+function refreshChrome() {
+  const n = items().length;
+  countEl.textContent = String(n);
+  listEl.hidden = n === 0;
+  emptyEl.hidden = n !== 0;
+  renumber();
+}
+
+function buildItem({ id, title, url }) {
+  const li = $("#itemTpl").content.firstElementChild.cloneNode(true);
+  li.id = "item-" + id;
+  li.dataset.id = String(id);
+  $(".item__idx", li).textContent = "00";
+  $(".item__title", li).textContent = title;
+  const a = $(".item__url", li);
+  a.href = url;
+  a.textContent = url;
+  $(".item__host", li).textContent = hostOf(url);
+  return li;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Add
+   ═══════════════════════════════════════════════════════════ */
+async function submitAdd() {
+  const title = $("#addTitle").value.trim();
+  const url   = $("#addUrl").value.trim();
+
+  if (!url) { toast("URL required", true); $("#addUrl").focus(); return; }
+
+  try {
+    const res  = await fetch("/add", {
+      method: "POST",
+      body: new URLSearchParams({ title, url }),
+    });
+    const data = await res.json();
+
+    if (data.status !== "ok") { toast(data.message || "Add failed", true); return; }
+
+    listEl.appendChild(buildItem({ id: data.id, title: data.title, url: data.url }));
+    setAddMode(false);
+    refreshChrome();
+    renderMove();
+    toast("Entry added");
+    const added = listEl.lastElementChild;
+    if (added && added.animate) {
+      added.animate(
+        [{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }],
+        { duration: 240, easing: "ease-out" }
+      );
+    }
+  } catch (err) {
+    toast("Network error", true);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Overlay plumbing
+   ═══════════════════════════════════════════════════════════ */
+let lastFocused = null;
+
+function openOverlay(overlay, focusTarget) {
+  lastFocused = document.activeElement;
+  overlay.inert = false;
+  overlay.dataset.open = "true";
+  shellEl.inert = true;
+  if (focusTarget) {
+    const place = () => { try { focusTarget.focus(); } catch (e) {} };
+    place();
+    requestAnimationFrame(place);
+  }
+}
+
+function closeOverlay(overlay) {
+  overlay.dataset.open = "false";
+  overlay.inert = true;
+  shellEl.inert = false;
+  if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
+  lastFocused = null;
+}
+
+$$(".overlay").forEach(overlay => {
+  overlay.addEventListener("mousedown", e => {
+    if (e.target === overlay) {
+      if (overlay.id === "editOverlay")   closeEdit();
+      if (overlay.id === "deleteOverlay") closeDelete();
     }
   });
+});
 
-  localStorage.setItem('bmCols', n);
-  console.log('[layout:cols] saved bmCols =', n);
+/* ═══════════════════════════════════════════════════════════
+   Edit
+   ═══════════════════════════════════════════════════════════ */
+const editOverlay = $("#editOverlay");
+const editForm    = $("#editForm");
+
+function openEdit(id) {
+  const li = $("#item-" + id);
+  if (!li) return;
+  state.editingId = id;
+  $("#editTitle").value = $(".item__title", li).textContent;
+  $("#editUrl").value   = $(".item__url", li).getAttribute("href");
+  openOverlay(editOverlay, $("#editTitle"));
 }
 
-/* ══════════════════════════════════════════════
-   Container width
-   ══════════════════════════════════════════════ */
-const WIDTH_OPTIONS = ['760px', '960px', '1024px', '98%'];
-
-function setWidth(w) {
-  const containerEl = document.getElementById('containerEl');
-  if (containerEl) containerEl.style.maxWidth = w;
-  WIDTH_OPTIONS.forEach(val => {
-    const b = document.querySelector('.btnWidth[data-width="' + val + '"]');
-    if (b) {
-      b.classList.toggle('border-indigo-500', val === w);
-      b.classList.toggle('text-indigo-500', val === w);
-    }
-  });
-  localStorage.setItem('bmWidth', w);
-  console.log('[layout:width] saved bmWidth =', w);
-}
-
-/* ══════════════════════════════════════════════
-   Restore saved preferences on load
-   ══════════════════════════════════════════════ */
-(function restorePreferences() {
-  const savedTheme = localStorage.getItem('bmTheme');
-  if (savedTheme === 'dark') {
-    document.getElementById('btnTheme').textContent = '[ LIGHT ]';
-  }
-
-  const savedCols = parseInt(localStorage.getItem('bmCols') || '1', 10);
-  if (savedCols >= 1 && savedCols <= 4) setColumns(savedCols);
-
-  const savedWidth = localStorage.getItem('bmWidth');
-  setWidth(WIDTH_OPTIONS.includes(savedWidth) ? savedWidth : '760px');
-
-  console.log('[init] restored preferences:', { savedTheme, savedCols, savedWidth });
-})();
-
-/* ══════════════════════════════════════════════
-   Inline edit -> Modal edit
-   ══════════════════════════════════════════════ */
-let currentEditId = null;
-
-function openEdit(id, e) {
-  e.stopPropagation();
-  const li = document.getElementById('item-' + id);
-  if (!li) {
-    console.error('[edit:open] item not found, id =', id);
-    return;
-  }
-  currentEditId = id;
-
-  const title = li.querySelector('.itemTitle').textContent;
-  const url = li.querySelector('.itemUrl a').getAttribute('href');
-  document.getElementById('modalEditTitle').value = title;
-  document.getElementById('modalEditUrl').value = url;
-
-  const overlay = document.getElementById('editOverlay');
-  overlay.classList.remove('hidden');
-  overlay.classList.add('flex');
-  document.getElementById('modalEditTitle').focus();
-
-  console.log('[edit:open] id =', id, { title, url });
-}
-
-function closeEditModal() {
-  console.log('[edit:close] id =', currentEditId);
-  const overlay = document.getElementById('editOverlay');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
-  currentEditId = null;
+function closeEdit() {
+  closeOverlay(editOverlay);
+  state.editingId = null;
 }
 
 async function saveEdit() {
-  const id = currentEditId;
-  if (id === null) {
-    console.warn('[edit:save] aborted, currentEditId is null');
-    return;
-  }
+  const id = state.editingId;
+  if (id === null) return;
 
-  const title = document.getElementById('modalEditTitle').value.trim();
-  const url = document.getElementById('modalEditUrl').value.trim();
-  if (!url) { toast('URL REQUIRED', true); return; }
+  const title = $("#editTitle").value.trim();
+  const url   = $("#editUrl").value.trim();
+  if (!url) { toast("URL required", true); $("#editUrl").focus(); return; }
 
-  console.log('[edit:save] id =', id, { title, url });
   try {
-    const res = await fetch('/edit/' + id, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, url })
+    const res  = await fetch("/edit/" + id, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, url }),
     });
     const data = await res.json();
-    console.log('[edit:save] server response:', data);
 
-    if (data.status === 'ok') {
-      const li = document.getElementById('item-' + id);
-      li.querySelector('.itemTitle').textContent = data.title;
-      const anchor = li.querySelector('.itemUrl a');
-      anchor.textContent = data.url;
-      anchor.href = data.url;
-      closeEditModal();
-      toast('ENTRY UPDATED');
-    } else {
-      console.warn('[edit:save] server rejected update:', data.message);
-      toast(data.message || 'UPDATE FAILED', true);
-    }
+    if (data.status !== "ok") { toast(data.message || "Update failed", true); return; }
+
+    const li = $("#item-" + id);
+    $(".item__title", li).textContent = data.title;
+    const a = $(".item__url", li);
+    a.href = data.url;
+    a.textContent = data.url;
+    $(".item__host", li).textContent = hostOf(data.url);
+
+    closeEdit();
+    toast("Entry updated");
   } catch (err) {
-    console.error('[edit:save] request failed:', err);
-    toast('NETWORK ERROR', true);
+    toast("Network error", true);
   }
 }
 
-document.getElementById('modalEditSaveBtn').addEventListener('click', saveEdit);
-document.getElementById('editOverlay').addEventListener('click', function (e) {
-  if (e.target === this) closeEditModal();
+$("#editSave").addEventListener("click", saveEdit);
+editForm.addEventListener("submit", e => { e.preventDefault(); saveEdit(); });
+editForm.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); saveEdit(); }
 });
 
-/* ══════════════════════════════════════════════
-   Move / reorder (button based, no drag & drop)
-   ══════════════════════════════════════════════ */
-function startMove(id, e) {
-  e.stopPropagation();
-  movingId = id;
-  console.log('[move:start] movingId =', id);
+/* ═══════════════════════════════════════════════════════════
+   Delete
+   ═══════════════════════════════════════════════════════════ */
+const deleteOverlay = $("#deleteOverlay");
 
-  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.add('hidden'));
+function openDelete(id) {
+  const li = $("#item-" + id);
+  if (!li) return;
+  state.deletingId = id;
+  $("#deleteTarget").textContent = $(".item__title", li).textContent;
+  openOverlay(deleteOverlay, $("#deleteConfirm"));
+}
 
-  const sourceCancelBtn = document.querySelector('#actions-' + id + ' .btnCancelMove');
-  if (sourceCancelBtn) sourceCancelBtn.classList.remove('hidden');
+function closeDelete() {
+  closeOverlay(deleteOverlay);
+  state.deletingId = null;
+}
 
-  document.querySelectorAll('.bookmarkItem').forEach(li => {
-    const itemId = +li.dataset.id;
-    if (itemId === id) return;
-    const before = document.querySelector('#actions-' + itemId + ' .btnInsertBefore');
-    const after = document.querySelector('#actions-' + itemId + ' .btnInsertAfter');
-    if (before) before.classList.remove('hidden');
-    if (after) after.classList.remove('hidden');
+async function executeDelete() {
+  const id = state.deletingId;
+  if (id === null) return;
+
+  closeOverlay(deleteOverlay);
+  if (state.movingId === id) state.movingId = null;
+
+  try {
+    const res  = await fetch("/delete/" + id, { method: "POST" });
+    const data = await res.json();
+    if (data.status !== "ok") { toast("Delete failed", true); return; }
+
+    const li = $("#item-" + id);
+    if (li) li.remove();
+    refreshChrome();
+    renderMove();
+    toast("Entry deleted");
+  } catch (err) {
+    toast("Network error", true);
+  }
+}
+
+$("#deleteConfirm").addEventListener("click", executeDelete);
+
+/* ═══════════════════════════════════════════════════════════
+   Move / reorder
+   ═══════════════════════════════════════════════════════════ */
+function renderMove() {
+  const moving = state.movingId;
+  items().forEach(li => {
+    const id = Number(li.dataset.id);
+    const isSource = moving === id;
+    const isTarget = moving !== null && !isSource;
+
+    li.classList.toggle("is-source", isSource);
+    li.classList.toggle("is-target", isTarget);
+
+    const q = act => li.querySelector('[data-act="' + act + '"]');
+    q("move").hidden        = moving !== null;
+    q("cancel-move").hidden = !isSource;
+    q("before").hidden      = !isTarget;
+    q("after").hidden       = !isTarget;
   });
 }
 
-function cancelMove(e) {
-  if (e) e.stopPropagation();
-  console.log('[move:cancel] movingId was =', movingId);
-  movingId = null;
-
-  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.remove('hidden'));
-  document.querySelectorAll('.btnCancelMove').forEach(btn => btn.classList.add('hidden'));
-  document.querySelectorAll('.btnInsertBefore').forEach(btn => btn.classList.add('hidden'));
-  document.querySelectorAll('.btnInsertAfter').forEach(btn => btn.classList.add('hidden'));
-}
-
-async function insertRelative(targetId, position, e) {
-  e.stopPropagation();
-  const sourceId = movingId;
-  console.log('[move:insert]', { sourceId, targetId, position });
+async function applyMove(targetId, position) {
+  const sourceId = state.movingId;
   if (sourceId === null || sourceId === targetId) { cancelMove(); return; }
 
-  const listEl = document.getElementById('bookmarkList');
-  const sourceLi = document.getElementById('item-' + sourceId);
-  const targetLi = document.getElementById('item-' + targetId);
+  const source = $("#item-" + sourceId);
+  const target = $("#item-" + targetId);
+  if (!source || !target) { cancelMove(); return; }
 
-  if (!sourceLi || !targetLi) {
-    console.error('[move:insert] missing DOM node for source or target');
-    cancelMove();
+  if (position === "before") {
+    listEl.insertBefore(source, target);
+  } else {
+    listEl.insertBefore(source, target.nextSibling);
+  }
+
+  state.movingId = null;
+  refreshChrome();
+  renderMove();
+
+  try {
+    const res = await fetch("/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(items().map(li => Number(li.dataset.id))),
+    });
+    const data = await res.json();
+    toast(data.status === "ok" ? "Order saved" : "Reorder failed", data.status !== "ok");
+  } catch (err) {
+    toast("Network error", true);
+  }
+}
+
+function cancelMove() {
+  state.movingId = null;
+  renderMove();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Delegated item actions
+   ═══════════════════════════════════════════════════════════ */
+listEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  e.preventDefault();
+
+  const li = btn.closest(".item");
+  const id = li ? Number(li.dataset.id) : null;
+
+  switch (btn.dataset.act) {
+    case "edit":        openEdit(id); break;
+    case "delete":      openDelete(id); break;
+    case "move":        state.movingId = id; renderMove(); toast("Pick a target: before / after"); break;
+    case "cancel-move": cancelMove(); break;
+    case "before":      applyMove(id, "before"); break;
+    case "after":       applyMove(id, "after"); break;
+  }
+});
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+  if (btn.dataset.act === "add-cancel")    setAddMode(false);
+  if (btn.dataset.act === "edit-cancel")   closeEdit();
+  if (btn.dataset.act === "delete-cancel") closeDelete();
+});
+
+/* ═══════════════════════════════════════════════════════════
+   Keyboard shortcuts
+   ═══════════════════════════════════════════════════════════ */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (editOverlay.dataset.open  === "true") { closeEdit();  return; }
+    if (deleteOverlay.dataset.open === "true") { closeDelete(); return; }
+    if (state.addMode)  { setAddMode(false); return; }
+    if (state.movingId !== null) { cancelMove(); return; }
     return;
   }
 
-  if (position === 'before') {
-    listEl.insertBefore(sourceLi, targetLi);
-  } else {
-    listEl.insertBefore(sourceLi, targetLi.nextSibling);
+  const t = e.target;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if (editOverlay.dataset.open === "true" || deleteOverlay.dataset.open === "true") return;
+
+  const key = e.key.toLowerCase();
+
+  if (key === "n") { e.preventDefault(); setAddMode(!state.addMode); return; }
+  if (key === "e") { e.preventDefault(); setEditMode(!state.editMode); return; }
+  if (key === "t") { e.preventDefault(); toggleTheme(); return; }
+  if (key === "1" || key === "2" || key === "3" || key === "4") {
+    e.preventDefault();
+    applyColumns(Number(key));
   }
-
-  const newOrder = [...listEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
-  console.log('[move:insert] new order =', newOrder);
-
-  try {
-    const res = await fetch('/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newOrder)
-    });
-    const data = await res.json();
-    console.log('[move:insert] server response:', data);
-    toast('ORDER SAVED');
-  } catch (err) {
-    console.error('[move:insert] request failed:', err);
-    toast('NETWORK ERROR', true);
-  }
-
-  cancelMove();
-}
-
-/* ══════════════════════════════════════════════
-   Delete with confirm
-   ══════════════════════════════════════════════ */
-let pendingDeleteId = null;
-
-function confirmDelete(id, e) {
-  e.stopPropagation();
-  pendingDeleteId = id;
-  const overlay = document.getElementById('confirmOverlay');
-  overlay.classList.remove('hidden');
-  overlay.classList.add('flex');
-  document.getElementById('confirmYes').onclick = () => executeDelete(id);
-  console.log('[delete:confirm] pending id =', id);
-}
-
-function cancelDelete() {
-  console.log('[delete:cancel] id =', pendingDeleteId);
-  pendingDeleteId = null;
-  const overlay = document.getElementById('confirmOverlay');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
-}
-
-async function submitAddForm(e) {
-  e.preventDefault();
-  const form = e.target;
-  const title = form.title.value.trim();
-  const url   = form.url.value.trim();
-
-  console.log('[add:submit] title:', title, 'url:', url);
-  try {
-    const res = await fetch('/add', {
-      method: 'POST',
-      body: new URLSearchParams({ title, url })
-    });
-    const data = await res.json();
-    console.log('[add:submit] server response:', data);
-    if (data.status === 'ok') {
-      toast('ENTRY ADDED');
-      form.reset();
-      toggleAddMode();
-      setTimeout(() => location.reload(), 600);
-    } else {
-      toast('ADD FAILED: ' + (data.message || data.status), true);
-    }
-  } catch (err) {
-    console.error('[add:submit] request failed:', err);
-    toast('NETWORK ERROR', true);
-  }
-}
-
-document.getElementById('addForm').addEventListener('submit', submitAddForm);
-async function executeDelete(id) {
-  const overlay = document.getElementById('confirmOverlay');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
-
-  console.log('[delete:execute] id =', id);
-  try {
-    const res = await fetch('/delete/' + id, { method: 'POST' });
-    const data = await res.json();
-    console.log('[delete:execute] server response:', data);
-    if (data.status === 'ok') {
-      document.getElementById('item-' + id).remove();
-      if (movingId === id) cancelMove();
-
-      const count = document.querySelectorAll('.bookmarkItem').length;
-      document.getElementById('listHeader').textContent = '> SAVED ENTRIES (' + count + ')';
-
-      if (!count) {
-        document.getElementById('bookmarkList').outerHTML =
-          '<div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>';
-      }
-      toast('ENTRY DELETED');
-    }
-  } catch (err) {
-    console.error('[delete:execute] request failed:', err);
-    toast('NETWORK ERROR', true);
-  }
-}
-
-document.getElementById('confirmOverlay').addEventListener('click', function (e) {
-  if (e.target === this) cancelDelete();
 });
 
-/* ══════════════════════════════════════════════
-   Toast
-   ══════════════════════════════════════════════ */
-let toastTimer;
-function toast(msg, isErr = false) {
-  const el = document.getElementById('toast');
-  el.textContent = '> ' + msg;
-  el.classList.remove('opacity-0', 'translate-y-2', 'border-indigo-500', 'text-indigo-500', 'border-rose-500', 'text-rose-500');
-  el.classList.add(isErr ? 'border-rose-500' : 'border-indigo-500', isErr ? 'text-rose-500' : 'text-indigo-500');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    el.classList.add('opacity-0', 'translate-y-2');
-  }, 2200);
-  console.log('[toast]', isErr ? 'ERROR' : 'OK', msg);
-}
+/* ═══════════════════════════════════════════════════════════
+   Boot — restore preferences
+   ═══════════════════════════════════════════════════════════ */
+applyTheme(document.documentElement.dataset.theme);
+applyColumns(Number(store.get("bmCols", 1)) || 1);
+applyWidth(store.get("bmWidth", "760px"));
+refreshChrome();
+renderMove();
+
+})();
 </script>
 </body>
 </html>
