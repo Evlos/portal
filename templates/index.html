@@ -1,456 +1,558 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en" class="h-full">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>// BOOKMARKS</title>
+<meta name="color-scheme" content="light dark">
+<title>Bookmarks</title>
 
 <script>
+  /* Apply the saved theme before first paint so there is no flash of the wrong palette. */
   (function () {
-    var savedTheme = localStorage.getItem('bmTheme');
-    if (savedTheme === 'dark') {
+    if (localStorage.getItem('bmTheme') === 'dark') {
       document.documentElement.classList.add('dark');
     }
-    console.log('[theme:init] localStorage bmTheme =', savedTheme);
   })();
 </script>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
-  tailwind.config = { darkMode: 'class' };
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto',
+                 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif',
+                 'Apple Color Emoji', 'Segoe UI Emoji'],
+          mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco',
+                 'Consolas', 'Liberation Mono', 'monospace']
+        }
+      }
+    }
+  };
 </script>
+
+<style type="text/tailwindcss">
+  @layer components {
+    /* ── Buttons ─────────────────────────────────────────────
+       .btn carries layout + focus ring; a variant adds colour. */
+    .btn {
+      @apply inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg
+             px-3 py-1.5 text-sm font-medium transition-colors duration-150
+             focus-visible:outline-none focus-visible:ring-4
+             disabled:pointer-events-none disabled:opacity-50;
+    }
+    .btn-primary {
+      @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-500
+             focus-visible:ring-indigo-500/30
+             dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:ring-indigo-400/30
+             aria-pressed:border aria-pressed:border-zinc-300 aria-pressed:bg-white
+             aria-pressed:text-zinc-700 aria-pressed:shadow-none
+             dark:aria-pressed:border-zinc-700 dark:aria-pressed:bg-zinc-900
+             dark:aria-pressed:text-zinc-300;
+    }
+    .btn-outline {
+      @apply border border-zinc-300 bg-white text-zinc-700 shadow-sm
+             hover:bg-zinc-50 hover:text-zinc-900 focus-visible:ring-zinc-400/30
+             dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300
+             dark:hover:bg-zinc-800 dark:hover:text-white dark:focus-visible:ring-zinc-500/30;
+    }
+    .btn-ghost {
+      @apply text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-zinc-400/30
+             dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white
+             dark:focus-visible:ring-zinc-500/30;
+    }
+    .btn-danger {
+      @apply border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800
+             focus-visible:ring-rose-500/30
+             dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300
+             dark:hover:bg-rose-500/20 dark:hover:text-rose-200;
+    }
+    .icon-btn {
+      @apply inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg
+             border border-zinc-300 bg-white text-zinc-600 transition-colors duration-150
+             hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-4
+             focus-visible:ring-zinc-400/30
+             dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400
+             dark:hover:bg-zinc-800 dark:hover:text-white dark:focus-visible:ring-zinc-500/30;
+    }
+
+    /* ── Form controls ──────────────────────────────────── */
+    .field {
+      @apply w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900
+             shadow-sm outline-none transition placeholder:text-zinc-400
+             focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15
+             dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100
+             dark:placeholder:text-zinc-500 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20;
+    }
+    .field-label {
+      @apply mb-1.5 block text-xs font-medium text-zinc-600 dark:text-zinc-400;
+    }
+
+    /* ── Surfaces ────────────────────────────────────────── */
+    .card {
+      @apply rounded-xl border border-zinc-200 bg-white shadow-sm transition-all duration-150
+             hover:border-zinc-300 hover:shadow-md
+             dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700;
+    }
+    .chip {
+      @apply inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5
+             text-xs font-medium tabular-nums text-zinc-600
+             dark:bg-zinc-800 dark:text-zinc-300;
+    }
+    .seg {
+      @apply inline-flex items-center gap-0.5 rounded-lg border border-zinc-200 bg-zinc-100/80 p-0.5
+             dark:border-zinc-800 dark:bg-zinc-900;
+    }
+    .seg-btn {
+      @apply rounded-md px-2.5 py-1 text-xs font-medium text-zinc-500 transition-colors duration-150
+             hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2
+             focus-visible:ring-indigo-500/40
+             aria-pressed:bg-white aria-pressed:text-zinc-900 aria-pressed:shadow-sm
+             dark:text-zinc-400 dark:hover:text-zinc-100
+             dark:aria-pressed:bg-zinc-700 dark:aria-pressed:text-white;
+    }
+    .dialog {
+      @apply relative w-full rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xl
+             dark:border-zinc-800 dark:bg-zinc-900;
+    }
+    .backdrop {
+      @apply absolute inset-0 bg-zinc-950/50 backdrop-blur-sm;
+    }
+
+    /* ── Context menu ────────────────────────────────────────
+       Replaces the old edit mode: right-click any bookmark. */
+    .ctx-menu {
+      @apply fixed z-[70] min-w-[13rem] origin-top-left overflow-hidden rounded-xl
+             border border-zinc-200 bg-white p-1 shadow-xl
+             dark:border-zinc-800 dark:bg-zinc-900;
+    }
+    .ctx-item {
+      @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm
+             text-zinc-700 transition-colors
+             hover:bg-zinc-100 hover:text-zinc-900
+             focus-visible:bg-zinc-100 focus-visible:text-zinc-900 focus-visible:outline-none
+             dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white
+             dark:focus-visible:bg-zinc-800 dark:focus-visible:text-white;
+    }
+    .ctx-item-danger {
+      @apply text-rose-600 hover:bg-rose-50 hover:text-rose-700 focus-visible:bg-rose-50
+             focus-visible:text-rose-700
+             dark:text-rose-400 dark:hover:bg-rose-500/10 dark:focus-visible:bg-rose-500/10;
+    }
+    .ctx-sep {
+      @apply my-1 h-px bg-zinc-200 dark:bg-zinc-800;
+    }
+    .ctx-hint {
+      @apply px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-wider text-zinc-400
+             dark:text-zinc-500;
+    }
+
+    /* ── Move mode ────────────────────────────────────────── */
+    .move-bar {
+      @apply mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-indigo-200
+             bg-indigo-50/70 px-4 py-3 text-sm
+             dark:border-indigo-500/30 dark:bg-indigo-500/10;
+    }
+    .bookmarkItem[data-moving="true"] {
+      @apply border-indigo-400 ring-2 ring-indigo-500/40 dark:border-indigo-400/70;
+    }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast-card {
+      @apply flex items-center gap-2.5 rounded-xl border bg-white px-4 py-3
+             shadow-lg ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/5;
+    }
+    .toast-card[data-kind="ok"] {
+      @apply border-emerald-200 bg-emerald-50/95 dark:border-emerald-500/30 dark:bg-emerald-500/10;
+    }
+    .toast-card[data-kind="error"] {
+      @apply border-rose-200 bg-rose-50/95 dark:border-rose-500/30 dark:bg-rose-500/10;
+    }
+    .toast-card[data-kind="ok"] .toast-icon { @apply text-emerald-600 dark:text-emerald-400; }
+    .toast-card[data-kind="error"] .toast-icon { @apply text-rose-600 dark:text-rose-400; }
+    .toast-msg { @apply text-sm font-medium text-zinc-800 dark:text-zinc-100; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
 </head>
 
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-mono min-h-screen transition-colors duration-200">
-<div class="max-w-3xl mx-auto px-4 py-10" id="containerEl">
+<body class="h-full bg-zinc-50 font-sans text-zinc-900 antialiased selection:bg-indigo-200 transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-100 dark:selection:bg-indigo-400/30">
 
-  <!-- ── Header ── -->
-  <header class="flex items-start justify-between mb-8 flex-wrap gap-3">
-    <div>
-      <h1 class="text-2xl font-bold tracking-widest border-l-4 border-indigo-500 pl-3">// BOOKMARKS</h1>
-      <p class="text-xs text-gray-400 dark:text-gray-500 tracking-widest mt-1">terminal link vault</p>
-    </div>
-    <div class="flex items-center gap-2">
-      <button id="btnAddMode" onclick="toggleAddMode()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
-        [ ADD ]
-      </button>
-      <button id="btnEditMode" onclick="toggleEditMode()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-amber-400 hover:text-amber-500 transition">
-        [ EDIT ]
-      </button>
-      <button id="btnTheme" onclick="toggleTheme()"
-        class="px-3 py-1.5 text-xs tracking-widest border rounded border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition">
-        [ DARK ]
-      </button>
+<!-- ── Icon sprite ─────────────────────────────────────────── -->
+<svg aria-hidden="true" focusable="false" class="hidden">
+  <defs>
+    <symbol id="i-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.86 3.49a2.06 2.06 0 0 1 2.91 2.91L8.75 17.43 4.5 18.5l1.07-4.25z"/>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/>
+    </symbol>
+    <symbol id="i-sort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21 16-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16"/>
+    </symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m5 12 7-7 7 7M12 19V5"/>
+    </symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 5v14m7-7-7 7-7-7"/>
+    </symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="9" y="9" width="12" height="12" rx="2"/>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32 1.41-1.41"/>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+    </symbol>
+    <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    </symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 12h-6l-2 3h-4l-2-3H2M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+    </symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <path d="M12 9v4M12 17h.01"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 6 9 17l-5-5"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 6 6 18M6 6l12 12"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- The header background runs the full width of the viewport; the width control
+     only constrains the content inside it, so it never floats on wide screens. -->
+<div id="containerEl" class="min-h-full">
+
+  <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-950/80">
+    <div class="content-col mx-auto w-full px-4 sm:px-6">
+      <div class="flex h-16 items-center justify-between gap-4">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm dark:bg-indigo-500">
+            <svg class="h-[18px] w-[18px]"><use href="#i-bookmark"/></svg>
+          </span>
+          <div class="min-w-0">
+            <h1 class="flex items-baseline gap-1.5 text-[15px] font-semibold leading-tight tracking-tight">
+              <span class="font-mono text-indigo-500 dark:text-indigo-400">//</span>
+              <span class="truncate">Bookmarks</span>
+            </h1>
+            <p class="hidden truncate text-xs leading-tight text-zinc-500 dark:text-zinc-400 sm:block">link vault</p>
+          </div>
+        </div>
+
+        <div class="flex flex-shrink-0 items-center gap-2">
+          <button id="btnAddMode" type="button" data-action="add" aria-pressed="false" aria-label="Add bookmark" aria-controls="addForm"
+            class="btn btn-primary h-9 px-2.5 sm:px-3">
+            <svg class="h-4 w-4"><use href="#i-plus"/></svg>
+            <span data-label class="hidden sm:inline">Add bookmark</span>
+          </button>
+          <button id="btnTheme" type="button" data-action="theme" class="icon-btn">
+            <svg class="h-[18px] w-[18px]"><use href="#i-moon"/></svg>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- ── Add form ── -->
-  <form id="addForm" action="/add" method="post"
-    class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 mb-8 shadow-sm">
-    <div class="text-xs text-blue-500 tracking-wide mb-4">&gt; ADD NEW ENTRY</div>
-    <div class="flex items-center gap-3 mb-3">
-      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">TITLE</label>
-      <input type="text" name="title" placeholder="optional label..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
-    </div>
-    <div class="flex items-center gap-3 mb-4">
-      <label class="w-16 text-xs text-gray-400 dark:text-gray-500">URL</label>
-      <input type="url" name="url" placeholder="https://..." required autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-indigo-500 outline-none py-1 text-sm">
-    </div>
-    <div class="flex gap-3">
-      <button type="submit"
-        class="px-5 py-1.5 text-xs tracking-widest border border-indigo-500 text-indigo-500 rounded hover:bg-indigo-500 hover:text-white transition">[ SAVE ]</button>
-      <button type="button" onclick="toggleAddMode()"
-        class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
-    </div>
-  </form>
+  <main class="content-col mx-auto w-full px-4 py-6 sm:px-6 sm:py-8">
 
-  <!-- ── List header row ── -->
-  <div class="flex items-center flex-wrap gap-3 mb-4">
-    <div class="text-xs text-gray-400 dark:text-gray-500 tracking-widest" id="listHeader">&gt; SAVED ENTRIES ({{ items|length }})</div>
-    <div class="flex gap-1" id="colBtns">
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="1" onclick="setColumns(1)">1</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="2" onclick="setColumns(2)">2</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="3" onclick="setColumns(3)">3</button>
-      <button class="btnCol px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-cols="4" onclick="setColumns(4)">4</button>
-    </div>
-    <div class="flex gap-1 pl-3 border-l border-gray-300 dark:border-gray-600" id="widthBtns">
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="760px" onclick="setWidth('760px')">760</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="960px" onclick="setWidth('960px')">960</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="1024px" onclick="setWidth('1024px')">1024</button>
-      <button class="btnWidth px-2 py-0.5 text-[10px] border rounded border-gray-300 dark:border-gray-600 text-gray-400" data-width="98%" onclick="setWidth('98%')">98%</button>
-    </div>
-  </div>
+    <!-- ── Add form ────────────────────────────────────────── -->
+    <form id="addForm" class="mb-6 hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 class="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-100">New bookmark</h2>
 
-  <!-- ── Bookmark list ── -->
-  {% if items %}
-  <ul id="bookmarkList" class="flex flex-col gap-2">
-    {% for item in items %}
-    <li class="bookmarkItem flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 min-h-[52px] transition hover:border-indigo-400"
-        data-id="{{ item.id }}" id="item-{{ item.id }}">
-      <div class="flex-1 min-w-0">
-        <div class="itemTitle text-sm truncate">{{ item.title }}</div>
-        <div class="itemUrl text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">
-          <a href="{{ item.url }}" target="_blank" rel="noopener" class="hover:underline">{{ item.url }}</a>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="addTitle" class="field-label">
+            Title <span class="font-normal text-zinc-400">(optional)</span>
+          </label>
+          <input id="addTitle" name="title" type="text" placeholder="A short label"
+            autocomplete="off" class="field">
+        </div>
+        <div>
+          <label for="addUrl" class="field-label">URL</label>
+          <input id="addUrl" name="url" type="url" placeholder="https://example.com" required
+            autocomplete="off" spellcheck="false" class="field font-mono">
         </div>
       </div>
-      <div class="itemActions hidden gap-2 flex-shrink-0 flex-wrap justify-end" id="actions-{{ item.id }}">
-        <button class="btnEdit px-2.5 py-1 text-[11px] border border-amber-400 text-amber-500 rounded hover:bg-amber-400 hover:text-white transition"
-          onclick="openEdit({{ item.id }}, event)">EDIT</button>
-        <button class="btnDelete px-2.5 py-1 text-[11px] border border-rose-400 text-rose-500 rounded hover:bg-rose-400 hover:text-white transition"
-          onclick="confirmDelete({{ item.id }}, event)">DEL</button>
-        <button class="btnMove px-2.5 py-1 text-[11px] border border-indigo-400 text-indigo-500 rounded hover:bg-indigo-400 hover:text-white transition"
-          onclick="startMove({{ item.id }}, event)">MOVE</button>
-        <button class="btnCancelMove hidden px-2.5 py-1 text-[11px] border border-gray-400 text-gray-500 rounded hover:bg-gray-400 hover:text-white transition"
-          onclick="cancelMove(event)">CANCEL</button>
-        <button class="btnInsertBefore hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
-          onclick="insertRelative({{ item.id }}, 'before', event)">INSERT BEFORE</button>
-        <button class="btnInsertAfter hidden px-2.5 py-1 text-[11px] border border-emerald-400 text-emerald-500 rounded hover:bg-emerald-400 hover:text-white transition"
-          onclick="insertRelative({{ item.id }}, 'after', event)">INSERT AFTER</button>
+
+      <div class="mt-5 flex items-center gap-2">
+        <button type="submit" class="btn btn-primary">
+          <svg class="h-4 w-4"><use href="#i-check"/></svg>
+          Save bookmark
+        </button>
+        <button type="button" data-action="add" class="btn btn-ghost">Cancel</button>
       </div>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>
-  {% endif %}
+    </form>
 
+    <!-- ── Move mode bar ───────────────────────────────────── -->
+    <div id="moveBar" class="move-bar hidden">
+      <svg class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400"><use href="#i-sort"/></svg>
+      <p class="min-w-0 flex-1">
+        <span class="font-medium text-zinc-900 dark:text-zinc-100">Moving “<span id="moveLabel"></span>”</span>
+        <span class="text-zinc-600 dark:text-zinc-400">— right-click another bookmark to place it.</span>
+      </p>
+      <button type="button" data-action="cancel-move" class="btn btn-outline h-8 px-2.5 text-xs">Cancel</button>
+    </div>
+
+    <!-- ── Toolbar ─────────────────────────────────────────── -->
+    <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div class="flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Saved</h2>
+        <span id="listHeader" class="chip">{{ items|length }}</span>
+      </div>
+
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <div id="colBtns" class="seg" role="group" aria-label="Column layout">
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="1" aria-pressed="true">1</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="2" aria-pressed="false">2</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="3" aria-pressed="false">3</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="4" aria-pressed="false">4</button>
+        </div>
+        <div id="widthBtns" class="seg" role="group" aria-label="Content width">
+          <button type="button" class="seg-btn btnWidth" data-action="width" data-width="640px" aria-pressed="false">640</button>
+          <button type="button" class="seg-btn btnWidth" data-action="width" data-width="768px" aria-pressed="true">768</button>
+          <button type="button" class="seg-btn btnWidth" data-action="width" data-width="1024px" aria-pressed="false">1024</button>
+          <button type="button" class="seg-btn btnWidth" data-action="width" data-width="1280px" aria-pressed="false">1280</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Bookmark list ───────────────────────────────────── -->
+    <ul id="bookmarkList" class="flex flex-col gap-3 {% if not items %}hidden{% endif %}">
+      {% for item in items %}
+      <li class="bookmarkItem card group flex min-w-0 items-center gap-3 px-4 py-3.5"
+          data-id="{{ item.id }}" id="item-{{ item.id }}">
+        <div class="min-w-0 flex-1">
+          <div class="itemTitle truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ item.title }}</div>
+          <a class="itemUrl mt-0.5 flex min-w-0 items-center gap-1.5 truncate font-mono text-xs text-zinc-500 transition-colors hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+             href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+             title="{{ item.url }}">
+            <svg class="h-3 w-3 flex-shrink-0 opacity-60"><use href="#i-external"/></svg>
+            <span class="min-w-0 truncate">{{ item.url }}</span>
+          </a>
+        </div>
+
+        <span data-badge class="hidden flex-shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+          Moving
+        </span>
+
+        <!-- Pointer affordance for the same menu the right-click opens. -->
+        <button type="button" class="card-menu flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg
+                     text-zinc-400 opacity-100 transition hover:bg-zinc-100 hover:text-zinc-700 focus-visible:opacity-100
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40
+                     sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100
+                     dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                data-action="open-menu" data-item-id="{{ item.id }}" aria-haspopup="menu" aria-expanded="false">
+          <span class="sr-only">Actions for {{ item.title }}</span>
+          <svg class="h-4 w-4"><use href="#i-dots"/></svg>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <!-- ── Empty state ─────────────────────────────────────── -->
+    <div id="emptyState" class="rounded-2xl border border-dashed border-zinc-300 bg-white/60 px-6 py-16 text-center dark:border-zinc-700 dark:bg-zinc-900/40 {% if items %}hidden{% endif %}">
+      <span class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+        <svg class="h-6 w-6"><use href="#i-inbox"/></svg>
+      </span>
+      <p class="font-mono text-[11px] uppercase tracking-[0.25em] text-zinc-400 dark:text-zinc-500">NO ENTRIES YET</p>
+      <h3 class="mt-2 text-base font-semibold text-zinc-900 dark:text-zinc-100">Your vault is empty</h3>
+      <p class="mx-auto mt-1.5 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+        Save your first link and it will show up here, ready to open in one click.
+      </p>
+      <button type="button" data-action="add" class="btn btn-primary mt-6">
+        <svg class="h-4 w-4"><use href="#i-plus"/></svg>
+        Add a bookmark
+      </button>
+    </div>
+
+  </main>
 </div>
 
-<!-- ── Confirm delete overlay ── -->
-<div id="confirmOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 border border-rose-400 rounded-lg px-8 py-7 text-center min-w-[280px]">
-    <p class="text-rose-500 text-sm mb-5 leading-relaxed">&gt; CONFIRM DELETE?<br>THIS ACTION CANNOT BE UNDONE.</p>
-    <div class="flex gap-3 justify-center">
-      <button id="confirmYes" class="px-5 py-1.5 text-xs tracking-widest border border-rose-500 text-rose-500 rounded hover:bg-rose-500 hover:text-white transition">[ DELETE ]</button>
-      <button onclick="cancelDelete()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+<!-- ── Bookmark context menu ───────────────────────────────── -->
+<div id="ctxMenu" role="menu" aria-label="Bookmark actions" class="ctx-menu hidden">
+  <p id="ctxTitle" class="ctx-hint"></p>
+
+  <!-- Normal state -->
+  <div data-when="idle">
+    <button type="button" role="menuitem" class="ctx-item" data-action="open-edit" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0 opacity-70"><use href="#i-pencil"/></svg>Edit
+    </button>
+    <button type="button" role="menuitem" class="ctx-item" data-action="start-move" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0 opacity-70"><use href="#i-sort"/></svg>Move
+    </button>
+    <button type="button" role="menuitem" class="ctx-item" data-action="copy-link" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0 opacity-70"><use href="#i-copy"/></svg>Copy link
+    </button>
+    <div class="ctx-sep"></div>
+    <button type="button" role="menuitem" class="ctx-item ctx-item-danger" data-action="delete" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0"><use href="#i-trash"/></svg>Delete
+    </button>
+  </div>
+
+  <!-- Move mode: right-clicking a different bookmark offers the target positions -->
+  <div data-when="target" class="hidden">
+    <button type="button" role="menuitem" class="ctx-item" data-action="insert" data-pos="before" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400"><use href="#i-up"/></svg>
+      Place before this
+    </button>
+    <button type="button" role="menuitem" class="ctx-item" data-action="insert" data-pos="after" data-item-id="">
+      <svg class="h-4 w-4 flex-shrink-0 text-emerald-600 dark:text-emerald-400"><use href="#i-down"/></svg>
+      Place after this
+    </button>
+    <div class="ctx-sep"></div>
+    <button type="button" role="menuitem" class="ctx-item" data-action="cancel-move">
+      <svg class="h-4 w-4 flex-shrink-0 opacity-70"><use href="#i-x"/></svg>Cancel move
+    </button>
+  </div>
+</div>
+
+<!-- ── Delete confirmation ─────────────────────────────────── -->
+<div id="confirmOverlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div class="backdrop" data-action="dismiss-confirm"></div>
+  <div role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmDesc"
+       class="dialog max-w-sm">
+    <div class="flex gap-4">
+      <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400">
+        <svg class="h-5 w-5"><use href="#i-alert"/></svg>
+      </span>
+      <div class="min-w-0">
+        <h2 id="confirmTitle" class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Delete this bookmark?</h2>
+        <p id="confirmDesc" class="mt-1.5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+          This permanently removes the entry from your vault. This action cannot be undone.
+        </p>
+      </div>
+    </div>
+    <div class="mt-6 flex justify-end gap-2">
+      <button type="button" data-action="dismiss-confirm" class="btn btn-outline">Cancel</button>
+      <button id="confirmYes" type="button" data-action="confirm-delete" class="btn btn-danger">Delete</button>
     </div>
   </div>
 </div>
 
-<!-- ── Edit modal overlay ── -->
-<div id="editOverlay" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 border border-amber-400 rounded-lg px-6 py-6 w-[90%] max-w-md">
-    <div class="text-xs text-amber-500 tracking-wide mb-4">&gt; EDIT ENTRY</div>
-    <div class="flex items-center gap-3 mb-3">
-      <label class="w-14 text-xs text-gray-400">TITLE</label>
-      <input id="modalEditTitle" type="text" placeholder="optional label..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
+<!-- ── Edit dialog ─────────────────────────────────────────── -->
+<div id="editOverlay" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+  <div class="backdrop" data-action="dismiss-edit"></div>
+  <div role="dialog" aria-modal="true" aria-labelledby="editDialogTitle" class="dialog max-w-md">
+    <h2 id="editDialogTitle" class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Edit bookmark</h2>
+
+    <div class="mt-5 grid gap-4">
+      <div>
+        <label for="modalEditTitle" class="field-label">
+          Title <span class="font-normal text-zinc-400">(optional)</span>
+        </label>
+        <input id="modalEditTitle" type="text" placeholder="A short label" autocomplete="off" class="field">
+      </div>
+      <div>
+        <label for="modalEditUrl" class="field-label">URL</label>
+        <input id="modalEditUrl" type="url" placeholder="https://example.com" autocomplete="off"
+          spellcheck="false" class="field font-mono">
+      </div>
     </div>
-    <div class="flex items-center gap-3 mb-5">
-      <label class="w-14 text-xs text-gray-400">URL</label>
-      <input id="modalEditUrl" type="url" placeholder="https://..." autocomplete="off"
-        class="flex-1 bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-amber-500 outline-none py-1 text-sm">
-    </div>
-    <div class="flex gap-3 justify-end">
-      <button id="modalEditSaveBtn" class="px-5 py-1.5 text-xs tracking-widest border border-amber-500 text-amber-500 rounded hover:bg-amber-500 hover:text-white transition">[ SAVE ]</button>
-      <button onclick="closeEditModal()" class="px-5 py-1.5 text-xs tracking-widest border border-gray-300 dark:border-gray-600 text-gray-400 rounded hover:bg-gray-400 hover:text-white transition">[ CANCEL ]</button>
+
+    <div class="mt-6 flex justify-end gap-2">
+      <button type="button" data-action="dismiss-edit" class="btn btn-outline">Cancel</button>
+      <button id="modalEditSaveBtn" type="button" data-action="save-edit" class="btn btn-primary">Save changes</button>
     </div>
   </div>
 </div>
 
-<!-- ── Toast ── -->
-<div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-gray-800 border border-indigo-500 text-indigo-500 text-xs px-4 py-2.5 rounded-lg opacity-0 translate-y-2 transition-all duration-300 pointer-events-none z-50"></div>
+<!-- ── Toast ───────────────────────────────────────────────── -->
+<div id="toast" role="status" aria-live="polite"
+     class="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex translate-y-3 justify-center px-4 opacity-0 transition-all duration-300 sm:inset-x-auto sm:right-6 sm:justify-end sm:px-0">
+  <div class="toast-card" data-kind="ok">
+    <svg class="toast-icon h-4 w-4 flex-shrink-0"><use href="#i-check" id="toastIcon"/></svg>
+    <span id="toastMsg" class="toast-msg"></span>
+  </div>
+</div>
 
 <script>
-/* ══════════════════════════════════════════════
-   Mode state
-   ══════════════════════════════════════════════ */
-let editMode = false;
-let addMode = false;
-let movingId = null;
+/* ══════════════════════════════════════════════════════════════
+   Helpers
+   ══════════════════════════════════════════════════════════════ */
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+const PREF = { theme: 'bmTheme', cols: 'bmCols', width: 'bmWidth' };
+const WIDTH_OPTIONS = ['640px', '768px', '1024px', '1280px'];
+const DEFAULT_WIDTH = '768px';
+
+const state = {
+  addMode: false,
+  movingId: null,
+  editId: null,
+  pendingDeleteId: null,
+  lastFocus: null
+};
+
+const ICON_SUN  = '<svg class="h-[18px] w-[18px]"><use href="#i-sun"/></svg>';
+const ICON_MOON = '<svg class="h-[18px] w-[18px]"><use href="#i-moon"/></svg>';
+const ICON_PLUS = '<svg class="h-4 w-4"><use href="#i-plus"/></svg>';
+const ICON_X    = '<svg class="h-4 w-4"><use href="#i-x"/></svg>';
+
+/* The add button collapses to its icon on narrow screens, so the accessible
+   name has to live on aria-label. */
+function renderAddButton() {
+  const btn = $('#btnAddMode');
+  const text = state.addMode ? 'Cancel' : 'Add bookmark';
+  btn.innerHTML = (state.addMode ? ICON_X : ICON_PLUS) +
+                  '<span data-label class="hidden sm:inline">' + text + '</span>';
+  btn.setAttribute('aria-pressed', String(state.addMode));
+  btn.setAttribute('aria-label', text);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Theme
+   ══════════════════════════════════════════════════════════════ */
+const isDark = () => document.documentElement.classList.contains('dark');
+
+function syncThemeButton(dark) {
+  const btn = $('#btnTheme');
+  const label = dark ? 'Switch to light theme' : 'Switch to dark theme';
+  btn.innerHTML = dark ? ICON_SUN : ICON_MOON;
+  btn.setAttribute('aria-label', label);
+  btn.setAttribute('title', label);
+}
 
 function toggleTheme() {
-  const isDark = document.documentElement.classList.toggle('dark');
-  localStorage.setItem('bmTheme', isDark ? 'dark' : 'light');
-  document.getElementById('btnTheme').textContent = isDark ? '[ LIGHT ]' : '[ DARK ]';
-  console.log('[theme:toggle] now dark =', isDark);
+  const dark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem(PREF.theme, dark ? 'dark' : 'light');
+  syncThemeButton(dark);
 }
 
-function toggleEditMode() {
-  editMode = !editMode;
-  console.log('[mode:edit] editMode =', editMode);
+/* ══════════════════════════════════════════════════════════════
+   Add mode
+   ══════════════════════════════════════════════════════════════ */
+function setAddMode(on) {
+  state.addMode = on;
+  $('#addForm').classList.toggle('hidden', !on);
+  renderAddButton();
 
-  if (editMode && addMode) {
-    addMode = false;
-    document.getElementById('addForm').classList.add('hidden');
-    setAddButtonActive(false);
-  }
-
-  document.querySelectorAll('.itemActions').forEach(el => el.classList.toggle('hidden', !editMode));
-
-  const btn = document.getElementById('btnEditMode');
-  btn.textContent = editMode ? '[ EXIT EDIT ]' : '[ EDIT ]';
-  btn.classList.toggle('border-amber-500', editMode);
-  btn.classList.toggle('text-amber-500', editMode);
-
-  if (!editMode && movingId !== null) {
-    cancelMove();
-  }
-}
-
-function setAddButtonActive(active) {
-  const btn = document.getElementById('btnAddMode');
-  btn.classList.toggle('border-blue-500', active);
-  btn.classList.toggle('text-blue-500', active);
-}
-
-function toggleAddMode() {
-  addMode = !addMode;
-  console.log('[mode:add] addMode =', addMode);
-  const form = document.getElementById('addForm');
-  form.classList.toggle('hidden', !addMode);
-  setAddButtonActive(addMode);
-  document.getElementById('btnAddMode').textContent = addMode ? '[ EXIT ADD ]' : '[ ADD ]';
-  if (addMode) form.querySelector('input[name="url"]').focus();
-}
-
-/* ══════════════════════════════════════════════
-   Column layout
-   ══════════════════════════════════════════════ */
-let currentCols = 1;
-const COL_CLASS_MAP = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' };
-
-function setColumns(n) {
-  const listEl = document.getElementById('bookmarkList');
-  if (!listEl) return;
-  currentCols = n;
-
-  listEl.classList.remove('grid', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4', 'flex', 'flex-col', 'gap-2');
-  if (n > 1) {
-    listEl.classList.add('grid', COL_CLASS_MAP[n], 'gap-2');
-  } else {
-    listEl.classList.add('flex', 'flex-col', 'gap-2');
-  }
-
-  [1, 2, 3, 4].forEach(i => {
-    const b = document.querySelector('.btnCol[data-cols="' + i + '"]');
-    if (b) {
-      b.classList.toggle('border-blue-500', i === n);
-      b.classList.toggle('text-blue-500', i === n);
-    }
-  });
-
-  localStorage.setItem('bmCols', n);
-  console.log('[layout:cols] saved bmCols =', n);
-}
-
-/* ══════════════════════════════════════════════
-   Container width
-   ══════════════════════════════════════════════ */
-const WIDTH_OPTIONS = ['760px', '960px', '1024px', '98%'];
-
-function setWidth(w) {
-  const containerEl = document.getElementById('containerEl');
-  if (containerEl) containerEl.style.maxWidth = w;
-  WIDTH_OPTIONS.forEach(val => {
-    const b = document.querySelector('.btnWidth[data-width="' + val + '"]');
-    if (b) {
-      b.classList.toggle('border-indigo-500', val === w);
-      b.classList.toggle('text-indigo-500', val === w);
-    }
-  });
-  localStorage.setItem('bmWidth', w);
-  console.log('[layout:width] saved bmWidth =', w);
-}
-
-/* ══════════════════════════════════════════════
-   Restore saved preferences on load
-   ══════════════════════════════════════════════ */
-(function restorePreferences() {
-  const savedTheme = localStorage.getItem('bmTheme');
-  if (savedTheme === 'dark') {
-    document.getElementById('btnTheme').textContent = '[ LIGHT ]';
-  }
-
-  const savedCols = parseInt(localStorage.getItem('bmCols') || '1', 10);
-  if (savedCols >= 1 && savedCols <= 4) setColumns(savedCols);
-
-  const savedWidth = localStorage.getItem('bmWidth');
-  setWidth(WIDTH_OPTIONS.includes(savedWidth) ? savedWidth : '760px');
-
-  console.log('[init] restored preferences:', { savedTheme, savedCols, savedWidth });
-})();
-
-/* ══════════════════════════════════════════════
-   Inline edit -> Modal edit
-   ══════════════════════════════════════════════ */
-let currentEditId = null;
-
-function openEdit(id, e) {
-  e.stopPropagation();
-  const li = document.getElementById('item-' + id);
-  if (!li) {
-    console.error('[edit:open] item not found, id =', id);
-    return;
-  }
-  currentEditId = id;
-
-  const title = li.querySelector('.itemTitle').textContent;
-  const url = li.querySelector('.itemUrl a').getAttribute('href');
-  document.getElementById('modalEditTitle').value = title;
-  document.getElementById('modalEditUrl').value = url;
-
-  const overlay = document.getElementById('editOverlay');
-  overlay.classList.remove('hidden');
-  overlay.classList.add('flex');
-  document.getElementById('modalEditTitle').focus();
-
-  console.log('[edit:open] id =', id, { title, url });
-}
-
-function closeEditModal() {
-  console.log('[edit:close] id =', currentEditId);
-  const overlay = document.getElementById('editOverlay');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
-  currentEditId = null;
-}
-
-async function saveEdit() {
-  const id = currentEditId;
-  if (id === null) {
-    console.warn('[edit:save] aborted, currentEditId is null');
-    return;
-  }
-
-  const title = document.getElementById('modalEditTitle').value.trim();
-  const url = document.getElementById('modalEditUrl').value.trim();
-  if (!url) { toast('URL REQUIRED', true); return; }
-
-  console.log('[edit:save] id =', id, { title, url });
-  try {
-    const res = await fetch('/edit/' + id, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, url })
-    });
-    const data = await res.json();
-    console.log('[edit:save] server response:', data);
-
-    if (data.status === 'ok') {
-      const li = document.getElementById('item-' + id);
-      li.querySelector('.itemTitle').textContent = data.title;
-      const anchor = li.querySelector('.itemUrl a');
-      anchor.textContent = data.url;
-      anchor.href = data.url;
-      closeEditModal();
-      toast('ENTRY UPDATED');
-    } else {
-      console.warn('[edit:save] server rejected update:', data.message);
-      toast(data.message || 'UPDATE FAILED', true);
-    }
-  } catch (err) {
-    console.error('[edit:save] request failed:', err);
-    toast('NETWORK ERROR', true);
-  }
-}
-
-document.getElementById('modalEditSaveBtn').addEventListener('click', saveEdit);
-document.getElementById('editOverlay').addEventListener('click', function (e) {
-  if (e.target === this) closeEditModal();
-});
-
-/* ══════════════════════════════════════════════
-   Move / reorder (button based, no drag & drop)
-   ══════════════════════════════════════════════ */
-function startMove(id, e) {
-  e.stopPropagation();
-  movingId = id;
-  console.log('[move:start] movingId =', id);
-
-  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.add('hidden'));
-
-  const sourceCancelBtn = document.querySelector('#actions-' + id + ' .btnCancelMove');
-  if (sourceCancelBtn) sourceCancelBtn.classList.remove('hidden');
-
-  document.querySelectorAll('.bookmarkItem').forEach(li => {
-    const itemId = +li.dataset.id;
-    if (itemId === id) return;
-    const before = document.querySelector('#actions-' + itemId + ' .btnInsertBefore');
-    const after = document.querySelector('#actions-' + itemId + ' .btnInsertAfter');
-    if (before) before.classList.remove('hidden');
-    if (after) after.classList.remove('hidden');
-  });
-}
-
-function cancelMove(e) {
-  if (e) e.stopPropagation();
-  console.log('[move:cancel] movingId was =', movingId);
-  movingId = null;
-
-  document.querySelectorAll('.btnMove').forEach(btn => btn.classList.remove('hidden'));
-  document.querySelectorAll('.btnCancelMove').forEach(btn => btn.classList.add('hidden'));
-  document.querySelectorAll('.btnInsertBefore').forEach(btn => btn.classList.add('hidden'));
-  document.querySelectorAll('.btnInsertAfter').forEach(btn => btn.classList.add('hidden'));
-}
-
-async function insertRelative(targetId, position, e) {
-  e.stopPropagation();
-  const sourceId = movingId;
-  console.log('[move:insert]', { sourceId, targetId, position });
-  if (sourceId === null || sourceId === targetId) { cancelMove(); return; }
-
-  const listEl = document.getElementById('bookmarkList');
-  const sourceLi = document.getElementById('item-' + sourceId);
-  const targetLi = document.getElementById('item-' + targetId);
-
-  if (!sourceLi || !targetLi) {
-    console.error('[move:insert] missing DOM node for source or target');
-    cancelMove();
-    return;
-  }
-
-  if (position === 'before') {
-    listEl.insertBefore(sourceLi, targetLi);
-  } else {
-    listEl.insertBefore(sourceLi, targetLi.nextSibling);
-  }
-
-  const newOrder = [...listEl.querySelectorAll('.bookmarkItem')].map(el => +el.dataset.id);
-  console.log('[move:insert] new order =', newOrder);
-
-  try {
-    const res = await fetch('/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newOrder)
-    });
-    const data = await res.json();
-    console.log('[move:insert] server response:', data);
-    toast('ORDER SAVED');
-  } catch (err) {
-    console.error('[move:insert] request failed:', err);
-    toast('NETWORK ERROR', true);
-  }
-
-  cancelMove();
-}
-
-/* ══════════════════════════════════════════════
-   Delete with confirm
-   ══════════════════════════════════════════════ */
-let pendingDeleteId = null;
-
-function confirmDelete(id, e) {
-  e.stopPropagation();
-  pendingDeleteId = id;
-  const overlay = document.getElementById('confirmOverlay');
-  overlay.classList.remove('hidden');
-  overlay.classList.add('flex');
-  document.getElementById('confirmYes').onclick = () => executeDelete(id);
-  console.log('[delete:confirm] pending id =', id);
-}
-
-function cancelDelete() {
-  console.log('[delete:cancel] id =', pendingDeleteId);
-  pendingDeleteId = null;
-  const overlay = document.getElementById('confirmOverlay');
-  overlay.classList.add('hidden');
-  overlay.classList.remove('flex');
+  if (on) requestAnimationFrame(() => $('#addUrl').focus());
+  else $('#addForm').reset();
 }
 
 async function submitAddForm(e) {
@@ -458,78 +560,406 @@ async function submitAddForm(e) {
   const form = e.target;
   const title = form.title.value.trim();
   const url   = form.url.value.trim();
+  const submit = $('button[type="submit"]', form);
+  submit.disabled = true;
 
-  console.log('[add:submit] title:', title, 'url:', url);
   try {
     const res = await fetch('/add', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ title, url })
     });
     const data = await res.json();
-    console.log('[add:submit] server response:', data);
+
     if (data.status === 'ok') {
-      toast('ENTRY ADDED');
+      toast('Bookmark added');
       form.reset();
-      toggleAddMode();
-      setTimeout(() => location.reload(), 600);
+      setTimeout(() => location.reload(), 500);
     } else {
-      toast('ADD FAILED: ' + (data.message || data.status), true);
+      toast(data.message || 'Could not add bookmark', 'error');
+      submit.disabled = false;
     }
   } catch (err) {
-    console.error('[add:submit] request failed:', err);
-    toast('NETWORK ERROR', true);
+    console.error('[add] request failed:', err);
+    toast('Network error', 'error');
+    submit.disabled = false;
   }
 }
 
-document.getElementById('addForm').addEventListener('submit', submitAddForm);
-async function executeDelete(id) {
-  const overlay = document.getElementById('confirmOverlay');
+/* ══════════════════════════════════════════════════════════════
+   Layout preferences
+   ══════════════════════════════════════════════════════════════ */
+function setColumns(n) {
+  const list = $('#bookmarkList');
+  if (!list) return;
+
+  list.classList.remove('flex', 'flex-col', 'grid',
+                        'sm:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4');
+
+  /* Always collapse to a single column on small screens, whatever is saved. */
+  if (n === 1) {
+    list.classList.add('flex', 'flex-col');
+  } else {
+    list.classList.add('grid', 'sm:grid-cols-2');
+    if (n === 3) list.classList.add('lg:grid-cols-3');
+    if (n === 4) list.classList.add('lg:grid-cols-4');
+  }
+  list.dataset.layout = n === 1 ? 'list' : 'grid';
+
+  $$('.btnCol').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.cols) === n)));
+  localStorage.setItem(PREF.cols, String(n));
+}
+
+function setWidth(w) {
+  if (!WIDTH_OPTIONS.includes(w)) return;
+  /* Header bar spans the viewport; only its inner content is constrained. */
+  $$('.content-col').forEach(el => { el.style.maxWidth = w; });
+  $$('.btnWidth').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.width === w)));
+  localStorage.setItem(PREF.width, w);
+}
+
+function restorePreferences() {
+  syncThemeButton(isDark());
+  renderAddButton();
+
+  const cols = parseInt(localStorage.getItem(PREF.cols) || '1', 10);
+  setColumns(cols >= 1 && cols <= 4 ? cols : 1);
+
+  const width = localStorage.getItem(PREF.width);
+  setWidth(WIDTH_OPTIONS.includes(width) ? width : DEFAULT_WIDTH);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Overlay helpers (focus capture + Escape)
+   ══════════════════════════════════════════════════════════════ */
+function openOverlay(overlay, focusTarget) {
+  state.lastFocus = document.activeElement;
+  overlay.classList.remove('hidden');
+  overlay.classList.add('flex');
+  if (focusTarget) requestAnimationFrame(() => focusTarget.focus());
+}
+
+function closeOverlay(overlay) {
   overlay.classList.add('hidden');
   overlay.classList.remove('flex');
+  const restore = state.lastFocus;
+  state.lastFocus = null;
+  if (restore && document.contains(restore)) restore.focus();
+}
 
-  console.log('[delete:execute] id =', id);
+const isOpen = (overlay) => !overlay.classList.contains('hidden');
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#ctxMenu').classList.contains('hidden'))     return closeMenu();
+  if (isOpen($('#editOverlay')))                      return closeEditModal();
+  if (isOpen($('#confirmOverlay')))                   return cancelDelete();
+  if (state.addMode)                                  return setAddMode(false);
+  if (state.movingId !== null)                        return cancelMove();
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Context menu — the replacement for edit mode
+   ══════════════════════════════════════════════════════════════ */
+function openMenu(x, y, id, trigger) {
+  const menu  = $('#ctxMenu');
+  const item  = document.getElementById('item-' + id);
+  if (!item) return;
+
+  const isTarget = state.movingId !== null && state.movingId !== id;
+
+  $('#ctxTitle').textContent = isTarget
+    ? 'Place the bookmark you are moving'
+    : $('.itemTitle', item).textContent.trim();
+
+  $('[data-when="idle"]',   menu).classList.toggle('hidden', isTarget);
+  $('[data-when="target"]', menu).classList.toggle('hidden', !isTarget);
+
+  /* Every actionable row needs to know which entry it applies to. */
+  $$('[data-item-id]', menu).forEach(b => { b.dataset.itemId = id; });
+
+  menu.classList.remove('hidden');
+  menu.style.left = '0px';
+  menu.style.top  = '0px';
+
+  const r = menu.getBoundingClientRect();
+  const pad = 8;
+  let left = x;
+  let top  = y;
+  if (left + r.width  + pad > window.innerWidth)  left = window.innerWidth  - r.width  - pad;
+  if (top  + r.height + pad > window.innerHeight) top  = y - r.height;
+  left = Math.max(pad, left);
+  top  = Math.max(pad, top);
+
+  menu.style.left = left + 'px';
+  menu.style.top  = top + 'px';
+
+  $$('.card-menu').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  if (trigger) trigger.setAttribute('aria-expanded', 'true');
+  $('[role="menuitem"]', menu).focus();
+}
+
+function closeMenu() {
+  const menu = $('#ctxMenu');
+  if (menu.classList.contains('hidden')) return;
+  menu.classList.add('hidden');
+  $$('.card-menu').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#ctxMenu')) closeMenu();
+});
+
+/* Arrow-key navigation inside the open menu. */
+$('#ctxMenu').addEventListener('keydown', (e) => {
+  const items = $$('[role="menuitem"]', $('#ctxMenu')).filter(b => !b.closest('.hidden'));
+  if (!items.length) return;
+  const i = items.indexOf(document.activeElement);
+
+  if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+  else if (e.key === 'Home') { e.preventDefault(); items[0].focus(); }
+  else if (e.key === 'End') { e.preventDefault(); items[items.length - 1].focus(); }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Move / reorder
+   ══════════════════════════════════════════════════════════════ */
+function startMove(id) {
+  state.movingId = id;
+  const item = document.getElementById('item-' + id);
+  if (!item) return;
+
+  $$('.bookmarkItem').forEach(li => {
+    const active = Number(li.dataset.id) === id;
+    li.dataset.moving = String(active);
+    $('[data-badge]', li)?.classList.toggle('hidden', !active);
+  });
+
+  $('#moveLabel').textContent = $('.itemTitle', item).textContent.trim();
+  $('#moveBar').classList.remove('hidden');
+}
+
+function cancelMove() {
+  if (state.movingId === null) return;
+  state.movingId = null;
+  $$('.bookmarkItem').forEach(li => {
+    li.dataset.moving = 'false';
+    $('[data-badge]', li)?.classList.add('hidden');
+  });
+  $('#moveBar').classList.add('hidden');
+}
+
+async function insertRelative(targetId, position) {
+  const sourceId = state.movingId;
+  if (sourceId === null || sourceId === targetId) return cancelMove();
+
+  const list   = $('#bookmarkList');
+  const source = document.getElementById('item-' + sourceId);
+  const target = document.getElementById('item-' + targetId);
+  if (!source || !target) return cancelMove();
+
+  if (position === 'before') {
+    list.insertBefore(source, target);
+  } else {
+    list.insertBefore(source, target.nextSibling);
+  }
+
+  const order = $$('#bookmarkList .bookmarkItem').map(el => Number(el.dataset.id));
+  cancelMove();
+
+  try {
+    const res = await fetch('/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    const data = await res.json();
+    if (data.status === 'ok') toast('Order saved');
+  } catch (err) {
+    console.error('[reorder] request failed:', err);
+    toast('Network error', 'error');
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Edit
+   ══════════════════════════════════════════════════════════════ */
+function openEdit(id) {
+  const li = document.getElementById('item-' + id);
+  if (!li) return;
+
+  state.editId = id;
+  $('#modalEditTitle').value = $('.itemTitle', li).textContent.trim();
+  $('#modalEditUrl').value   = $('.itemUrl', li).getAttribute('href');
+
+  openOverlay($('#editOverlay'), $('#modalEditTitle'));
+}
+
+function closeEditModal() {
+  closeOverlay($('#editOverlay'));
+  state.editId = null;
+}
+
+async function saveEdit() {
+  const id = state.editId;
+  if (id === null) return;
+
+  const title = $('#modalEditTitle').value.trim();
+  const url   = $('#modalEditUrl').value.trim();
+  if (!url) return toast('URL is required', 'error');
+
+  const btn = $('#modalEditSaveBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/edit/' + id, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, url })
+    });
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      const li = document.getElementById('item-' + id);
+      $('.itemTitle', li).textContent = data.title;
+      const anchor = $('.itemUrl', li);
+      anchor.href = data.url;
+      anchor.title = data.url;
+      $('span', anchor).textContent = data.url;
+      closeEditModal();
+      toast('Bookmark updated');
+    } else {
+      toast(data.message || 'Update failed', 'error');
+    }
+  } catch (err) {
+    console.error('[edit] request failed:', err);
+    toast('Network error', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Delete
+   ══════════════════════════════════════════════════════════════ */
+function confirmDelete(id) {
+  state.pendingDeleteId = id;
+  openOverlay($('#confirmOverlay'), $('#confirmYes'));
+}
+
+function cancelDelete() {
+  closeOverlay($('#confirmOverlay'));
+  state.pendingDeleteId = null;
+}
+
+async function executeDelete() {
+  const id = state.pendingDeleteId;
+  cancelDelete();
+  if (id === null) return;
+
   try {
     const res = await fetch('/delete/' + id, { method: 'POST' });
     const data = await res.json();
-    console.log('[delete:execute] server response:', data);
+
     if (data.status === 'ok') {
-      document.getElementById('item-' + id).remove();
-      if (movingId === id) cancelMove();
-
-      const count = document.querySelectorAll('.bookmarkItem').length;
-      document.getElementById('listHeader').textContent = '> SAVED ENTRIES (' + count + ')';
-
-      if (!count) {
-        document.getElementById('bookmarkList').outerHTML =
-          '<div class="text-center text-xs text-gray-400 dark:text-gray-500 tracking-widest border border-dashed border-gray-300 dark:border-gray-600 rounded-lg py-8">_ NO ENTRIES YET _</div>';
-      }
-      toast('ENTRY DELETED');
+      document.getElementById('item-' + id)?.remove();
+      if (state.movingId === id) cancelMove();
+      syncCount();
+      toast('Bookmark deleted');
     }
   } catch (err) {
-    console.error('[delete:execute] request failed:', err);
-    toast('NETWORK ERROR', true);
+    console.error('[delete] request failed:', err);
+    toast('Network error', 'error');
   }
 }
 
-document.getElementById('confirmOverlay').addEventListener('click', function (e) {
-  if (e.target === this) cancelDelete();
+/* Keep the counter and the empty state in sync after a removal. */
+function syncCount() {
+  const count = $$('#bookmarkList .bookmarkItem').length;
+  $('#listHeader').textContent = count;
+  $('#bookmarkList').classList.toggle('hidden', count === 0);
+  $('#emptyState').classList.toggle('hidden', count !== 0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Toast
+   ══════════════════════════════════════════════════════════════ */
+let toastTimer;
+
+function toast(msg, kind = 'ok') {
+  const shell = $('#toast');
+  const card  = $('.toast-card', shell);
+
+  $('#toastMsg').textContent = msg;
+  card.dataset.kind = kind;
+  $('use', shell).setAttribute('href', kind === 'error' ? '#i-alert' : '#i-check');
+
+  shell.classList.remove('opacity-0', 'translate-y-3');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => shell.classList.add('opacity-0', 'translate-y-3'), 2400);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Event delegation — one listener for the whole page
+   ══════════════════════════════════════════════════════════════ */
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('[data-action]');
+  if (!trigger) return;
+
+  const id = trigger.dataset.itemId ? Number(trigger.dataset.itemId) : null;
+
+  switch (trigger.dataset.action) {
+    case 'add':            setAddMode(!state.addMode);                  break;
+    case 'theme':          toggleTheme();                                break;
+    case 'cols':           setColumns(Number(trigger.dataset.cols));      break;
+    case 'width':          setWidth(trigger.dataset.width);              break;
+
+    case 'open-menu': {
+      const r = trigger.getBoundingClientRect();
+      openMenu(r.right - 12, r.bottom + 6, id, trigger);
+      break;
+    }
+    case 'open-edit':      openEdit(id);                                 break;
+    case 'save-edit':      saveEdit();                                   break;
+    case 'dismiss-edit':   closeEditModal();                             break;
+    case 'start-move':     startMove(id);                                break;
+    case 'cancel-move':    cancelMove();                                 break;
+    case 'insert':         insertRelative(id, trigger.dataset.pos);      break;
+    case 'delete':         confirmDelete(id);                            break;
+    case 'confirm-delete': executeDelete();                              break;
+    case 'dismiss-confirm':cancelDelete();                               break;
+
+    case 'copy-link': {
+      const url = document.getElementById('item-' + id)?.querySelector('.itemUrl')?.href;
+      if (url) {
+        navigator.clipboard.writeText(url)
+          .then(() => toast('Link copied'))
+          .catch(() => toast('Could not copy link', 'error'));
+      }
+      break;
+    }
+  }
+
+  if (trigger.closest('#ctxMenu')) closeMenu();
 });
 
-/* ══════════════════════════════════════════════
-   Toast
-   ══════════════════════════════════════════════ */
-let toastTimer;
-function toast(msg, isErr = false) {
-  const el = document.getElementById('toast');
-  el.textContent = '> ' + msg;
-  el.classList.remove('opacity-0', 'translate-y-2', 'border-indigo-500', 'text-indigo-500', 'border-rose-500', 'text-rose-500');
-  el.classList.add(isErr ? 'border-rose-500' : 'border-indigo-500', isErr ? 'text-rose-500' : 'text-indigo-500');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => {
-    el.classList.add('opacity-0', 'translate-y-2');
-  }, 2200);
-  console.log('[toast]', isErr ? 'ERROR' : 'OK', msg);
-}
+/* Right-click on a bookmark opens the same menu. */
+$('#bookmarkList').addEventListener('contextmenu', (e) => {
+  const item = e.target.closest('.bookmarkItem');
+  if (!item) return;
+  e.preventDefault();
+  openMenu(e.clientX, e.clientY, Number(item.dataset.id), $('.card-menu', item));
+});
+
+$('#addForm').addEventListener('submit', submitAddForm);
+
+/* Enter inside the edit dialog saves without reaching for the mouse. */
+$('#editOverlay').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') saveEdit();
+});
+
+restorePreferences();
 </script>
 </body>
 </html>

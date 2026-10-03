@@ -10,7 +10,7 @@
 
 **// BOOKMARKS — terminal link vault**
 
-A cyberpunk-style minimalist bookmark management website built with Flask and SQLite, featuring drag-and-drop sorting, multi-column layout, light/dark theme switching, and one-click Docker deployment.
+A minimalist bookmark management website built with Flask, SQLite, and Tailwind CSS, featuring multi-column layout, light/dark theme switching, and one-click Docker deployment.
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
@@ -34,16 +34,19 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 ## ✦ Features
 
 - **CRUD operations** — Add, edit, and delete bookmarks with custom titles.
-- **Edit mode** — Click `[ EDIT ]` in the top-right corner to enter edit mode; the button turns yellow. Only in edit mode are the per-item EDIT and DEL buttons visible, and drag-and-drop reordering enabled. Click again to exit.
-- **Add mode** — Click `[ ADD ]` in the top-right corner to reveal the ADD NEW ENTRY form. A `[ CANCEL ]` button inside the form exits add mode without submitting. Add mode and edit mode are mutually exclusive.
-- **Multi-column layout** — Switch the entry list between 1 / 2 / 3 / 4 column grid layouts via the toolbar next to the entry count. Column preference is persisted across sessions.
-- **Light / Dark theme** — Toggle between the default dark terminal palette and a high-contrast light mode via the `[ LIGHT ]` / `[ DARK ]` button in the header. Theme preference is persisted across sessions.
-- **Persistent preferences** — Column layout and theme selections are saved to `localStorage` and automatically restored on every page load.
-- **Delete confirmation** — Deleting a bookmark requires a second confirmation via a modal overlay, preventing accidental removal.
-- **Drag-and-drop sorting** — Drag items to instantly reorder them using SortableJS (only available in edit mode). Edit mode automatically switches to single-column layout for reliable drag behaviour; the entire row acts as the drag target.
-- **Inline editing** — Click EDIT to expand the editing panel directly in the list, eliminating the need for page redirects.
-- **Toast notifications** — Lightweight, terminal-style pop-ups appear after every action.
-- **Zero frontend dependencies** — The project only imports SortableJS via CDN, avoiding heavy frontend frameworks.
+- **Right-click context menu** — Right-click any bookmark to open its action menu: `Edit`, `Move`, `Copy link`, `Delete`. There is no separate edit mode. On touch devices each card also carries a `⋮` button that opens the same menu.
+- **Add mode** — Click `Add bookmark` in the header to reveal the new-bookmark form, which focuses the URL field on open. A `Cancel` button inside the form exits add mode without submitting.
+- **Multi-column layout** — Switch the entry list between 1 / 2 / 3 / 4 column grids via the toolbar. On narrow screens the grid always collapses to a single column while the saved choice is still reported. Column preference is persisted across sessions.
+- **Content width** — Set the content column to 640 / 768 / 1024 / 1280 px from the toolbar. Preference is persisted across sessions. The header bar always spans the full viewport, so it never floats on a wide screen.
+- **Light / Dark theme** — Toggle from the sun/moon button in the header. The saved theme is applied before first paint, so there is no flash of the wrong palette.
+- **Persistent preferences** — Theme, column layout, and width are saved to `localStorage` and restored on every page load.
+- **Delete confirmation** — Deleting a bookmark requires confirmation in a modal dialog, preventing accidental removal.
+- **Reordering** — `Move` from the context menu highlights the entry and shows a banner; right-clicking any other bookmark then offers `Place before this` / `Place after this`. The new order is written to the database immediately.
+- **Modal editing** — `Edit` opens a dialog for the entry; saving updates the row in place without a page reload.
+- **Toast notifications** — Lightweight success/error toasts appear after every action, announced via `aria-live`.
+- **Keyboard & screen reader support** — The context menu exposes `role="menu"` / `role="menuitem"` with arrow-key, `Home` / `End` and `Escape` handling; visible focus rings throughout; `Escape` closes any open menu or dialog; focus returns to the trigger on close; dialogs expose `role="dialog"` / `aria-modal`.
+- **Responsive layout** — The header collapses to icon buttons and cards stack on phones; long titles and URLs truncate rather than overflow.
+- **Zero build step** — Tailwind CSS runs from the Play CDN and all logic is vanilla JavaScript, so `python app.py` is the only thing needed to run the app.
 - **SQLite persistence** — Data is securely stored in a local file without needing an external database.
 - **One-click Docker deployment** — The multi-stage Alpine build keeps the container image extremely small.
 - **Comprehensive test coverage** — Full workflow testing with pytest covers the homepage, adding, deleting, editing, and reordering.
@@ -53,12 +56,13 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 
 | Mode | Trigger | Effect |
 | :-- | :-- | :-- |
-| **Normal** | Default | Read-only view; EDIT/DEL buttons and drag handle hidden; multi-column layout available |
-| **Edit mode** | `[ EDIT ]` button (top-right) | Auto-switches to single column; shows compact single-line entries; entire row is draggable; shows EDIT/DEL buttons |
-| **Add mode** | `[ ADD ]` button (top-right) | Reveals the ADD NEW ENTRY form; `[ CANCEL ]` hides it again |
-| **Light mode** | `[ LIGHT ]` button (top-right) | Switches to a high-contrast light palette; preference saved automatically |
+| **Normal** | Default | Read-only view; per-item actions live in the right-click menu |
+| **Context menu** | Right-click a bookmark (or its `⋮` button) | Shows `Edit` / `Move` / `Copy link` / `Delete` for that entry |
+| **Move mode** | `Move` from the context menu | Highlights the entry and shows a banner; right-clicking another bookmark offers `Place before this` / `Place after this` |
+| **Add mode** | `Add bookmark` button (header) | Reveals the new-bookmark form and focuses the URL field; `Cancel` hides it again |
+| **Light mode** | Sun/moon button (header) | Switches to the light palette; preference saved automatically |
 
-> Edit mode and add mode are mutually exclusive — activating one automatically exits the other.
+> `Escape` closes an open context menu first, then any open dialog, then add mode, then move mode.
 
 
 ## ✦ Tech Stack
@@ -68,8 +72,9 @@ A cyberpunk-style minimalist bookmark management website built with Flask and SQ
 | Backend framework | Python 3.12 · Flask |
 | Data storage | SQLite (`data/bookmarks.db`) |
 | Template engine | Jinja2 |
-| Frontend interaction | Vanilla JS · SortableJS 1.15 |
-| UI style | Cyberpunk terminal, pure CSS variables |
+| Styling | Tailwind CSS 3 (Play CDN) + `@layer components` |
+| Frontend interaction | Vanilla JavaScript (no framework, no build step) |
+| Icons | Inline SVG sprite |
 | Preference persistence | `localStorage` |
 | Containerization | Docker (Alpine multi-stage build) |
 | Testing framework | pytest · Flask Test Client |
