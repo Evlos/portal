@@ -36,8 +36,8 @@ A minimalist bookmark management website built with Flask, SQLite, and Tailwind 
 - **CRUD operations** — Add, edit, and delete bookmarks with custom titles.
 - **Right-click context menu** — Right-click any bookmark to open its action menu: `Edit`, `Move`, `Copy link`, `Delete`. There is no separate edit mode. On touch devices each card also carries a `⋮` button that opens the same menu.
 - **Add mode** — Click `Add bookmark` in the header to reveal the new-bookmark form, which focuses the URL field on open. A `Cancel` button inside the form exits add mode without submitting.
-- **Multi-column layout** — Switch the entry list between 1 / 2 / 3 / 4 column grids via the toolbar. On narrow screens the grid always collapses to a single column while the saved choice is still reported. Column preference is persisted across sessions.
-- **Content width** — Set the content column to 640 / 768 / 1024 / 1280 px from the toolbar. Preference is persisted across sessions. The header bar always spans the full viewport, so it never floats on a wide screen.
+- **Multi-column layout** — Switch the entry list between 1 / 2 / 3 / 4 / 5 / 6 / 7 / 8 column grids via the toolbar. The grid gains columns as the viewport widens and always collapses to a single column on narrow screens, while the saved choice is still reported. Column preference is persisted across sessions.
+- **Content width** — Set the content column to 640 / 768 / 1024 / 1280 px or `100%` from the toolbar. Preference is persisted across sessions. The header bar always spans the full viewport, so it never floats on a wide screen.
 - **Light / Dark theme** — Toggle from the sun/moon button in the header. The saved theme is applied before first paint, so there is no flash of the wrong palette.
 - **Persistent preferences** — Theme, column layout, and width are saved to `localStorage` and restored on every page load.
 - **Delete confirmation** — Deleting a bookmark requires confirmation in a modal dialog, preventing accidental removal.

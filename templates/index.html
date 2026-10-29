@@ -330,12 +330,17 @@
           <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="2" aria-pressed="false">2</button>
           <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="3" aria-pressed="false">3</button>
           <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="4" aria-pressed="false">4</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="5" aria-pressed="false">5</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="6" aria-pressed="false">6</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="7" aria-pressed="false">7</button>
+          <button type="button" class="seg-btn btnCol" data-action="cols" data-cols="8" aria-pressed="false">8</button>
         </div>
         <div id="widthBtns" class="seg" role="group" aria-label="Content width">
           <button type="button" class="seg-btn btnWidth" data-action="width" data-width="640px" aria-pressed="false">640</button>
           <button type="button" class="seg-btn btnWidth" data-action="width" data-width="768px" aria-pressed="true">768</button>
           <button type="button" class="seg-btn btnWidth" data-action="width" data-width="1024px" aria-pressed="false">1024</button>
           <button type="button" class="seg-btn btnWidth" data-action="width" data-width="1280px" aria-pressed="false">1280</button>
+          <button type="button" class="seg-btn btnWidth" data-action="width" data-width="100%" aria-pressed="false">100%</button>
         </div>
       </div>
     </div>
@@ -497,8 +502,24 @@ const $  = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 const PREF = { theme: 'bmTheme', cols: 'bmCols', width: 'bmWidth' };
-const WIDTH_OPTIONS = ['640px', '768px', '1024px', '1280px'];
+const WIDTH_OPTIONS = ['640px', '768px', '1024px', '1280px', '100%'];
 const DEFAULT_WIDTH = '768px';
+
+/* Column count → responsive grid classes. The grid gains columns as the
+   viewport widens and always collapses to one column below the sm
+   breakpoint. 1–4 keep their original ladder; 5–8 extend it. */
+const COLUMN_CLASSES = {
+  1: [],
+  2: ['sm:grid-cols-2'],
+  3: ['sm:grid-cols-2', 'lg:grid-cols-3'],
+  4: ['sm:grid-cols-2', 'lg:grid-cols-4'],
+  5: ['sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'xl:grid-cols-5'],
+  6: ['sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'xl:grid-cols-6'],
+  7: ['sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'xl:grid-cols-6', '2xl:grid-cols-7'],
+  8: ['sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'xl:grid-cols-6', '2xl:grid-cols-8'],
+};
+const ALL_COLUMN_CLASSES = [...new Set(Object.values(COLUMN_CLASSES).flat())];
+const MAX_COLUMNS = Object.keys(COLUMN_CLASSES).length;
 
 const state = {
   addMode: false,
@@ -592,17 +613,15 @@ async function submitAddForm(e) {
 function setColumns(n) {
   const list = $('#bookmarkList');
   if (!list) return;
+  if (!COLUMN_CLASSES[n]) n = 1;
 
-  list.classList.remove('flex', 'flex-col', 'grid',
-                        'sm:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4');
+  list.classList.remove('flex', 'flex-col', 'grid', ...ALL_COLUMN_CLASSES);
 
   /* Always collapse to a single column on small screens, whatever is saved. */
   if (n === 1) {
     list.classList.add('flex', 'flex-col');
   } else {
-    list.classList.add('grid', 'sm:grid-cols-2');
-    if (n === 3) list.classList.add('lg:grid-cols-3');
-    if (n === 4) list.classList.add('lg:grid-cols-4');
+    list.classList.add('grid', ...COLUMN_CLASSES[n]);
   }
   list.dataset.layout = n === 1 ? 'list' : 'grid';
 
@@ -623,7 +642,7 @@ function restorePreferences() {
   renderAddButton();
 
   const cols = parseInt(localStorage.getItem(PREF.cols) || '1', 10);
-  setColumns(cols >= 1 && cols <= 4 ? cols : 1);
+  setColumns(cols >= 1 && cols <= MAX_COLUMNS ? cols : 1);
 
   const width = localStorage.getItem(PREF.width);
   setWidth(WIDTH_OPTIONS.includes(width) ? width : DEFAULT_WIDTH);
